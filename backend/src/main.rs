@@ -8,7 +8,6 @@ use todo_backend::handlers::{list_todos, search_todos, get_todo, update_todo};
 async fn main() {
     // build our application with a single route
     let app = Router::new()
-        .route("/api", get(hello_world))
         .route("/todos", get(list_todos))
         .route("/todos/{id}", get(get_todo).put(update_todo))
         .route("/todos/search", get(search_todos));
@@ -17,12 +16,4 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     println!("Server started successfully at 0.0.0.0:3000");
     axum::serve(listener, app).await.unwrap();
-}
-
-async fn hello_world() -> impl IntoResponse {
-    let json_response = json!({
-        "status": "ok",
-        "message": "Hello, World!"
-    });
-    Json(json_response)
 }
