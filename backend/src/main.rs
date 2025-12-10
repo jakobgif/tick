@@ -1,7 +1,7 @@
 use axum::{Json, Router, response::IntoResponse, routing::get};
 use serde_json::json;
 
-use todo_backend::handlers::{list_todos, search_todos};
+use todo_backend::handlers::{list_todos, search_todos, get_todo, update_todo};
 
 //https://docs.rs/axum/latest/axum/#example
 #[tokio::main]
@@ -10,6 +10,7 @@ async fn main() {
     let app = Router::new()
         .route("/api", get(hello_world))
         .route("/todos", get(list_todos))
+        .route("/todos/{id}", get(get_todo).put(update_todo))
         .route("/todos/search", get(search_todos));
 
     // listen globally on port 3000
