@@ -1,16 +1,41 @@
-use axum::{Json, Router, response::IntoResponse, routing::get};
-use serde_json::json;
+// Jakob Frenzel
+// 11/12/25
+
+use axum::{Router, routing::get};
+use sqlx::{Executor, sqlite::{SqliteConnectOptions, SqlitePool}};
 
 use todo_backend::handlers::{list_todos, search_todos, get_todo, update_todo};
 
 //https://docs.rs/axum/latest/axum/#example
 #[tokio::main]
 async fn main() {
+    // connect to database
+    // create new file if it does not exist
+    // https://medium.com/@mikecode/rust-sqlx-sqlite-8d66dbe5e497
+    let option = SqliteConnectOptions::new().filename("todos.db").create_if_missing(true);
+    let connection = SqlitePool::connect_with(option).await.unwrap();
+
+    //create table in database if it does not exist
+    //based on struct TodoItem
+    connection.execute("
+        CREATE TABLE IF NOT EXISTS todos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT,
+            done INTEGER NOT NULL DEFAULT 0,
+            priority INTEGER,
+            creation_date INTEGER NOT NULL,
+            goal_date INTEGER,
+            finish_date INTEGER
+        );
+    ").await.unwrap();
+
     // build our application with a single route
     let app = Router::new()
         .route("/todos", get(list_todos))
         .route("/todos/{id}", get(get_todo).put(update_todo))
-        .route("/todos/search", get(search_todos));
+        .route("/todos/search", get(search_todos))
+        .with_state(connection);
 
     // listen globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
