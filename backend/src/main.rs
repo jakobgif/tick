@@ -2,6 +2,7 @@
 // 11/12/25
 
 use axum::{Router, routing::get};
+use chrono::Utc;
 use sqlx::{Executor, sqlite::{SqliteConnectOptions, SqlitePool}};
 
 use todo_backend::handlers::{list_todos, search_todos, get_todo, update_todo};
@@ -18,17 +19,31 @@ async fn main() {
     //create table in database if it does not exist
     //based on struct TodoItem
     connection.execute("
-        CREATE TABLE IF NOT EXISTS todos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            content TEXT,
-            done INTEGER NOT NULL DEFAULT 0,
-            priority INTEGER,
-            creation_date INTEGER NOT NULL,
-            goal_date INTEGER,
-            finish_date INTEGER
-        );
-    ").await.unwrap();
+            CREATE TABLE IF NOT EXISTS todos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                content TEXT,
+                done INTEGER NOT NULL DEFAULT 0,
+                priority INTEGER,
+                creation_date INTEGER NOT NULL,
+                goal_date INTEGER,
+                finish_date INTEGER
+            );
+        ").await.unwrap();
+
+    // add dummy item to db
+    sqlx::query("
+            INSERT INTO todos (
+                title, content, creation_date
+            )
+            VALUES (?, ?, ?)
+        ")
+        .bind("Example Todo")
+        .bind("Some content")
+        .bind(Utc::now().timestamp())
+        .execute(&connection)
+        .await
+        .unwrap();
 
     // build our application with a single route
     let app = Router::new()
