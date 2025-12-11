@@ -6,41 +6,41 @@ use chrono::{DateTime, Utc};
 
 /// Struct that contains all data a todo item consists of
 /// matches the database fields
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, sqlx::FromRow)]
 pub struct TodoItem {
     /// unique id for the todo item
-    id: u64,
+    pub id: u64,
 
     /// title of the todo
-    title: String,
+    pub title: String,
 
     /// content of the todo item
-    content: String,
+    pub content: String,
 
     /// flag to indicate if task done or not done
-    done: bool,
+    pub done: bool,
 
     /// priority levels
     /// 0 most important
     /// u16::MAX least important
-    priority: u16,
+    pub priority: u16,
 
     /// datetime when item was created
     /// timestamp created on client side
     /// serialized as epoch seconds
     #[serde(with = "chrono::serde::ts_seconds")]
-    creation_date: DateTime<Utc>,
+    pub creation_date: DateTime<Utc>,
 
     /// datetime when the task should be finished
     /// serialized as epoch seconds
     #[serde(with = "chrono::serde::ts_seconds")]
-    goal_date: DateTime<Utc>,
+    pub goal_date: DateTime<Utc>,
 
     /// datetime when the task actually was finished
     /// timestamp created on client side
     /// serialized as epoch seconds
     #[serde(with = "chrono::serde::ts_seconds")]
-    finish_date: DateTime<Utc>
+    pub finish_date: DateTime<Utc>
 }
 
 /// Struct to handle whatever search parameters the application offers
