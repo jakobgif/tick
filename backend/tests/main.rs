@@ -3,8 +3,8 @@
 
 #[cfg(test)]
 mod tests {
-    use axum::{body::Bytes, extract::{Path, State}};
-    use todo_backend::handlers::{get_todo, list_todos, update_todo};
+    use axum::{body::Bytes, extract::{Path, Query, State}};
+    use todo_backend::{data_structs::SearchParams, handlers::{get_todo, list_todos, search_todos, update_todo}};
     use axum::{response::IntoResponse};
     use serde_json::{Value};
     use sqlx::{Executor, sqlite::{SqliteConnectOptions, SqlitePool}};
@@ -186,5 +186,34 @@ mod tests {
         assert_eq!(json["item"]["creation_date"], 1);
         assert_eq!(json["item"]["goal_date"], 20);
         assert_eq!(json["item"]["finish_date"], 10);
+    }
+
+    #[tokio::test]
+    async fn test_search_todos() {
+        let connection = setup_test_db().await;
+        populate_test_db(connection.clone()).await;
+
+        //query done=true
+        let mut params = SearchParams {
+            done: Some(true)
+        };
+        let mut response = search_todos(State(connection.clone()), Query(params)).await.into_response();
+        let mut body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let mut json: Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json["items"].as_array().unwrap().len(), 1);
+        assert_db_item2(json["items"][0].clone());
+
+        //query nothing
+        params = SearchParams {
+            done: None
+        };
+        response = search_todos(State(connection.clone()), Query(params)).await.into_response();
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json["items"].as_array().unwrap().len(), 2);
     }
 }
