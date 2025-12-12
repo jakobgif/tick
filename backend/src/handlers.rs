@@ -1,9 +1,9 @@
 // Jakob Frenzel
 // 10/12/25
 
-use axum::{Json, extract::{Path, Query, Request, State}, response::IntoResponse};
+use axum::{Json, body::Bytes, extract::{Path, Query, Request, State}, response::IntoResponse};
 use serde_json::json;
-use sqlx::sqlite::SqlitePool;
+use sqlx::sqlite::{SqlitePool, SqliteQueryResult};
 use urlencoding::decode;
 
 use crate::data_structs::{SearchParams, TodoItem};
@@ -28,7 +28,6 @@ pub async fn list_todos(State(connection): State<SqlitePool>) -> impl IntoRespon
             "status": "ok",
             "items": items
         })),
-
         Err(e) => Json(json!({
             "status": "error",
             "message": e.to_string()
@@ -42,7 +41,7 @@ pub async fn list_todos(State(connection): State<SqlitePool>) -> impl IntoRespon
 /// curl -X GET http://localhost:3000/todos/42
 /// ```
 // https://docs.rs/axum/latest/axum/extract/struct.Path.html
-pub async fn get_todo(State(connection): State<SqlitePool>, Path(id): Path<u64>) -> impl IntoResponse {
+pub async fn get_todo(State(connection): State<SqlitePool>, Path(id): Path<i64>) -> impl IntoResponse {
     // get database row for specific ID
     let result: Result<TodoItem, sqlx::Error> = sqlx::query_as::<_, TodoItem>("
         SELECT  id, title, content, done, priority,
@@ -50,7 +49,7 @@ pub async fn get_todo(State(connection): State<SqlitePool>, Path(id): Path<u64>)
         FROM todos
         WHERE id = ?
     ")
-    .bind(id as i64)
+    .bind(id)
     .fetch_one(&connection)
     .await;
 
@@ -59,7 +58,6 @@ pub async fn get_todo(State(connection): State<SqlitePool>, Path(id): Path<u64>)
             "status": "ok",
             "item": item
         })),
-
         Err(e) => Json(json!({
             "status": "error",
             "message": e.to_string()
@@ -68,15 +66,60 @@ pub async fn get_todo(State(connection): State<SqlitePool>, Path(id): Path<u64>)
 }
 
 /// update a specific todo item by ID
+/// the request body must contain a complete TodoItem as json
 /// # Examples
 /// ```bash
-/// curl -X PUT http://localhost:3000/todos/31
+/// curl -X PUT http://localhost:3000/todos -d '{"content":"","creation_date":0,"done":false,"finish_date":0,"goal_date":0,"id":1,"priority":0,"title":""}'
 /// ```
-// https://docs.rs/axum/latest/axum/extract/struct.Path.html
-pub async fn update_todo(Path(id): Path<u64>) -> impl IntoResponse {
-    Json(json!({
-        "status": "ok"
-    }))
+pub async fn update_todo(State(connection): State<SqlitePool>, body: Bytes) -> impl IntoResponse {
+    //try to parse request body
+    let parsed: Result<TodoItem, serde_json::Error> = serde_json::from_slice(&body);
+
+    //handle errors
+    let payload = match parsed {
+        Ok(p) => p,
+        Err(e) => {
+            return Json(json!({
+                "status": "error",
+                "message": format!("Invalid JSON: {}", e)
+            }));
+        }
+    };
+
+    // run udpate query to database
+    // creation_date cannot be changed
+    let result: Result<SqliteQueryResult, sqlx::Error> = sqlx::query("
+        UPDATE todos
+        SET title = ?, content = ?, done = ?, priority = ?, goal_date = ?, finish_date = ?
+        WHERE id = ?
+    ")
+    .bind(payload.title)
+    .bind(payload.content)
+    .bind(payload.done)
+    .bind(payload.priority)
+    .bind(payload.goal_date)
+    .bind(payload.finish_date)
+    .bind(payload.id)
+    .execute(&connection)
+    .await;
+
+    match result {
+        Ok(res) => {
+            //ID does not exits = no row got updated
+            if res.rows_affected() == 0 {
+                return Json(json!({
+                    "status": "error",
+                    "message": format!("Todo with ID {} does not exist", payload.id)
+                }));
+            }
+
+            Json(json!({ "status": "ok" }))
+        }
+        Err(e) => Json(json!({
+            "status": "error",
+            "message": e.to_string()
+        })),
+    }
 }
 
 /// return todo items with specific database query
