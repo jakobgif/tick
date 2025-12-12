@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 #[derive(Deserialize, Serialize, sqlx::FromRow)]
 pub struct TodoItem {
     /// unique id for the todo item
-    pub id: u64,
+    pub id: i64,
 
     /// title of the todo
     pub title: String,
@@ -21,9 +21,9 @@ pub struct TodoItem {
     pub done: bool,
 
     /// priority levels
-    /// 0 most important
-    /// u16::MAX least important
-    pub priority: u16,
+    /// 0 least important
+    /// i16::MAX most important
+    pub priority: i16,
 
     /// datetime when item was created
     /// timestamp created on client side
