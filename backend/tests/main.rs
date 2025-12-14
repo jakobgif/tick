@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests {
     use axum::{body::Bytes, extract::{Path, Query, State}};
-    use todo_backend::{data_structs::SearchParams, handlers::{get_todo, list_todos, search_todos, update_todo}};
+    use todo_backend::{data_structs::SearchParams, handlers::{delete_todo, get_todo, list_todos, search_todos, update_todo}};
     use axum::{response::IntoResponse};
     use serde_json::{Value};
     use sqlx::{Executor, sqlite::{SqliteConnectOptions, SqlitePool}};
@@ -215,5 +215,37 @@ mod tests {
 
         assert_eq!(json["status"], "ok");
         assert_eq!(json["items"].as_array().unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_delete_todo() {
+        let connection = setup_test_db().await;
+        populate_test_db(connection.clone()).await;
+
+        //unknown ID
+        let mut response = delete_todo(State(connection.clone()), Path(100)).await.into_response();
+        let mut body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let mut json: Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "error");
+        assert_eq!(json["message"], "Todo with ID 100 does not exist");
+
+        //delete ID 1
+        response = delete_todo(State(connection.clone()), Path(1)).await.into_response();
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+
+        //read back todos
+        response = list_todos(State(connection.clone())).await.into_response();
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        //only one item in database
+        assert_eq!(json["items"].as_array().unwrap().len(), 1);
+        //remaining item matches item 2
+        assert_db_item2(json["items"][0].clone());
     }
 }

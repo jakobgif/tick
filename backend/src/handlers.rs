@@ -179,3 +179,36 @@ pub async fn autocomplete_todos(req: Request) -> impl IntoResponse {
         "query": query
     }))
 }
+
+/// delete a specific todo item from the database
+/// # Examples
+/// ```bash
+/// curl -X DELETE http://localhost:3000/todos/42
+/// ```
+pub async fn delete_todo(State(connection): State<SqlitePool>, Path(id): Path<i64>) -> impl IntoResponse {
+    //delete row from database
+    let result: Result<SqliteQueryResult, sqlx::Error> = sqlx::query("
+        DELETE FROM todos WHERE id = ?
+    ")
+    .bind(id)
+    .execute(&connection)
+    .await;
+
+    match result {
+        Ok(res) => {
+            //ID does not exits = no row got updated
+            if res.rows_affected() == 0 {
+                return Json(json!({
+                    "status": "error",
+                    "message": format!("Todo with ID {} does not exist", id)
+                }));
+            }
+
+            Json(json!({ "status": "ok" }))
+        }
+        Err(e) => Json(json!({
+            "status": "error",
+            "message": e.to_string()
+        })),
+    }
+}

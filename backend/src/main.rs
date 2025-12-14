@@ -5,7 +5,7 @@ use axum::{Router, routing::get};
 use chrono::Utc;
 use sqlx::{Executor, sqlite::{SqliteConnectOptions, SqlitePool}};
 
-use todo_backend::handlers::{autocomplete_todos, get_todo, list_todos, search_todos, update_todo};
+use todo_backend::handlers::{autocomplete_todos, delete_todo, get_todo, list_todos, search_todos, update_todo};
 
 //https://docs.rs/axum/latest/axum/#example
 #[tokio::main]
@@ -48,7 +48,7 @@ async fn main() {
     // build our application with a single route
     let app = Router::new()
         .route("/todos", get(list_todos).put(update_todo))
-        .route("/todos/{id}", get(get_todo))
+        .route("/todos/{id}", get(get_todo).delete(delete_todo))
         .route("/todos/search", get(search_todos))
         .route("/todos/autocomplete", get(autocomplete_todos))
         .with_state(connection);
