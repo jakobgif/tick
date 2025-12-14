@@ -34,7 +34,7 @@ pub struct TodoItem {
     /// datetime when the task should be finished
     /// serialized as epoch seconds
     #[serde(with = "chrono::serde::ts_seconds")]
-    pub goal_date: DateTime<Utc>,
+    pub due_date: DateTime<Utc>,
 
     /// datetime when the task actually was finished
     /// timestamp created on client side

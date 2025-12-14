@@ -27,7 +27,7 @@ mod tests {
                     done INTEGER NOT NULL DEFAULT 0,
                     priority INTEGER,
                     creation_date INTEGER NOT NULL,
-                    goal_date INTEGER,
+                    due_date INTEGER,
                     finish_date INTEGER
                 );
             ").await.unwrap();
@@ -49,7 +49,7 @@ mod tests {
         //full entry
         sqlx::query("
                 INSERT INTO todos (
-                    title, content, done, priority, creation_date, goal_date, finish_date
+                    title, content, done, priority, creation_date, due_date, finish_date
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             ")
@@ -71,7 +71,7 @@ mod tests {
         assert_eq!(json["done"], false);
         assert_eq!(json["priority"], 0);
         assert_eq!(json["creation_date"], 1);
-        assert_eq!(json["goal_date"], 0);
+        assert_eq!(json["due_date"], 0);
         assert_eq!(json["finish_date"], 0);
     }
 
@@ -81,7 +81,7 @@ mod tests {
         assert_eq!(json["done"], true);
         assert_eq!(json["priority"], 1);
         assert_eq!(json["creation_date"], 2);
-        assert_eq!(json["goal_date"], 4);
+        assert_eq!(json["due_date"], 4);
         assert_eq!(json["finish_date"], 3);
     }
 
@@ -156,7 +156,7 @@ mod tests {
         assert_eq!(json["message"], "Invalid JSON: missing field `id` at line 1 column 2");
 
         //non existend id
-        let item_json = r#"{"content":"updated content","creation_date":0,"done":true,"finish_date":10,"goal_date":20,"id":100,"priority":100,"title":"updated title"}"#;
+        let item_json = r#"{"content":"updated content","creation_date":0,"done":true,"finish_date":10,"due_date":20,"id":100,"priority":100,"title":"updated title"}"#;
         response = update_todo(State(connection.clone()), Bytes::from(item_json)).await.into_response();
         body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         json = serde_json::from_slice(&body).unwrap();
@@ -165,7 +165,7 @@ mod tests {
         assert_eq!(json["message"], "Todo with ID 100 does not exist");
 
         //update item 1
-        let item_json = r#"{"content":"updated content","creation_date":0,"done":true,"finish_date":10,"goal_date":20,"id":1,"priority":100,"title":"updated title"}"#;
+        let item_json = r#"{"content":"updated content","creation_date":0,"done":true,"finish_date":10,"due_date":20,"id":1,"priority":100,"title":"updated title"}"#;
         response = update_todo(State(connection.clone()), Bytes::from(item_json)).await.into_response();
         body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         json = serde_json::from_slice(&body).unwrap();
@@ -184,7 +184,7 @@ mod tests {
         assert_eq!(json["item"]["done"], true);
         assert_eq!(json["item"]["priority"], 100);
         assert_eq!(json["item"]["creation_date"], 1);
-        assert_eq!(json["item"]["goal_date"], 20);
+        assert_eq!(json["item"]["due_date"], 20);
         assert_eq!(json["item"]["finish_date"], 10);
     }
 

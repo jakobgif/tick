@@ -26,7 +26,7 @@ async fn main() {
                 done INTEGER NOT NULL DEFAULT 0,
                 priority INTEGER,
                 creation_date INTEGER NOT NULL,
-                goal_date INTEGER,
+                due_date INTEGER,
                 finish_date INTEGER
             );
         ").await.unwrap();

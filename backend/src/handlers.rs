@@ -18,7 +18,7 @@ pub async fn list_todos(State(connection): State<SqlitePool>) -> impl IntoRespon
     // get all database rows as result so we can check later if query was sucessful or not
     let result: Result<Vec<TodoItem>, sqlx::Error> = sqlx::query_as::<_, TodoItem>("
         SELECT  id, title, content, done, priority,
-                creation_date, goal_date, finish_date
+                creation_date, due_date, finish_date
         FROM todos
     ")
     .fetch_all(&connection)
@@ -46,7 +46,7 @@ pub async fn get_todo(State(connection): State<SqlitePool>, Path(id): Path<i64>)
     // get database row for specific ID
     let result: Result<TodoItem, sqlx::Error> = sqlx::query_as::<_, TodoItem>("
         SELECT  id, title, content, done, priority,
-                creation_date, goal_date, finish_date
+                creation_date, due_date, finish_date
         FROM todos
         WHERE id = ?
     ")
@@ -70,7 +70,7 @@ pub async fn get_todo(State(connection): State<SqlitePool>, Path(id): Path<i64>)
 /// the request body must contain a complete TodoItem as json
 /// # Examples
 /// ```bash
-/// curl -X PUT http://localhost:3000/todos -d '{"content":"","creation_date":0,"done":true,"finish_date":0,"goal_date":0,"id":1,"priority":0,"title":""}'
+/// curl -X PUT http://localhost:3000/todos -d '{"content":"","creation_date":0,"done":true,"finish_date":0,"due_date":0,"id":1,"priority":0,"title":""}'
 /// ```
 pub async fn update_todo(State(connection): State<SqlitePool>, body: Bytes) -> impl IntoResponse {
     //try to parse request body
@@ -91,14 +91,14 @@ pub async fn update_todo(State(connection): State<SqlitePool>, body: Bytes) -> i
     // creation_date cannot be changed
     let result: Result<SqliteQueryResult, sqlx::Error> = sqlx::query("
         UPDATE todos
-        SET title = ?, content = ?, done = ?, priority = ?, goal_date = ?, finish_date = ?
+        SET title = ?, content = ?, done = ?, priority = ?, due_date = ?, finish_date = ?
         WHERE id = ?
     ")
     .bind(payload.title)
     .bind(payload.content)
     .bind(payload.done)
     .bind(payload.priority)
-    .bind(payload.goal_date)
+    .bind(payload.due_date)
     .bind(payload.finish_date)
     .bind(payload.id)
     .execute(&connection)
