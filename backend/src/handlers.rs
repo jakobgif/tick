@@ -1,10 +1,11 @@
 // Jakob Frenzel
 // 10/12/25
 
-use axum::{Json, body::Bytes, extract::{Path, Query, Request, State}, response::IntoResponse};
+use std::collections::HashMap;
+
+use axum::{Json, body::Bytes, extract::{Path, Query, State}, response::IntoResponse};
 use serde_json::json;
 use sqlx::sqlite::{SqlitePool, SqliteQueryResult};
-use urlencoding::decode;
 use sqlx::Arguments;
 
 use crate::data_structs::{SearchParams, TodoItem};
@@ -159,25 +160,46 @@ pub async fn search_todos(State(connection): State<SqlitePool>, Query(params): Q
 /// return todo items which title or content includes the query string
 /// # Examples
 /// ```bash
-/// curl -X GET http://localhost:3000/todos/autocomplete?Hello,%20World!
+/// curl -X GET http://localhost:3000/todos/autocomplete?q=Hello,%20World!
 /// ```
-pub async fn autocomplete_todos(req: Request) -> impl IntoResponse {
-    //get decoded string out of the query
-    //if query is empty the string is empty
-    let query = decode(req.uri().query().unwrap_or("")).expect("UTF-8");
+pub async fn autocomplete_todos(State(connection): State<SqlitePool>, Query(params): Query<HashMap<String, String>>) -> impl IntoResponse {
+    //get the query based on the key "q"
+    //return empty json if query string is empty
+    let query = match params.get("q") {
+        Some(q) if !q.trim().is_empty() => q,
+        _ => {
+            return Json(json!({
+                "status": "ok",
+                "items": []
+            }));
+        }
+    };
 
-    //return nothing if string is empty
-    if query.is_empty() {
-        return Json(json!({
+    //prepares string so the sql query "like" works
+    //% in front and back means anything can be in front and back
+    let query_like = format!("%{}%", query);
+
+    let result = sqlx::query_as::<_, TodoItem>("
+        SELECT *
+        FROM todos
+        WHERE title LIKE ? OR content LIKE ?
+        LIMIT 10
+    ")
+    .bind(&query_like)
+    .bind(&query_like)
+    .fetch_all(&connection)
+    .await;
+
+    match result {
+        Ok(items) => Json(json!({
             "status": "ok",
-            "items": []
-        }));
+            "items": items
+        })),
+        Err(e) => Json(json!({
+            "status": "error",
+            "message": e.to_string()
+        })),
     }
-
-    Json(json!({
-        "status": "ok",
-        "query": query
-    }))
 }
 
 /// delete a specific todo item from the database

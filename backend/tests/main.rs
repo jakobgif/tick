@@ -3,8 +3,10 @@
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use axum::{body::Bytes, extract::{Path, Query, State}};
-    use todo_backend::{data_structs::SearchParams, handlers::{delete_todo, get_todo, list_todos, search_todos, update_todo}};
+    use todo_backend::{data_structs::SearchParams, handlers::{autocomplete_todos, delete_todo, get_todo, list_todos, search_todos, update_todo}};
     use axum::{response::IntoResponse};
     use serde_json::{Value};
     use sqlx::{Executor, sqlite::{SqliteConnectOptions, SqlitePool}};
@@ -247,5 +249,69 @@ mod tests {
         assert_eq!(json["items"].as_array().unwrap().len(), 1);
         //remaining item matches item 2
         assert_db_item2(json["items"][0].clone());
+    }
+
+    #[tokio::test]
+    async fn test_autocomplete_todos() {
+        let connection = setup_test_db().await;
+        populate_test_db(connection.clone()).await;
+
+        //empty string
+        let mut params = HashMap::new();
+        params.insert("q".to_string(), "".to_string());
+        let mut response = autocomplete_todos(State(connection.clone()), Query(params.clone())).await.into_response();
+        let mut body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let mut json: Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json["items"].as_array().unwrap().len(), 0);
+
+        //unkown string
+        params.clear();
+        params.insert("q".to_string(), "something that does not exist".to_string());
+        response = autocomplete_todos(State(connection.clone()), Query(params.clone())).await.into_response();
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json["items"].as_array().unwrap().len(), 0);
+
+        //search for item 1
+        //title contains a "1"
+        params.clear();
+        params.insert("q".to_string(), "1".to_string());
+        response = autocomplete_todos(State(connection.clone()), Query(params.clone())).await.into_response();
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json["items"].as_array().unwrap().len(), 1);
+        assert_db_item1(json["items"][0].clone());
+
+        //search for item 2
+        //description contains a "Hello"
+        params.clear();
+        params.insert("q".to_string(), "Hello".to_string());
+        response = autocomplete_todos(State(connection.clone()), Query(params.clone())).await.into_response();
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json["items"].as_array().unwrap().len(), 1);
+        assert_db_item2(json["items"][0].clone());
+
+        //search for both
+        //both titles contain "Test"
+        //also checking if not case senitive
+        params.clear();
+        params.insert("q".to_string(), "TEsT".to_string());
+        response = autocomplete_todos(State(connection.clone()), Query(params.clone())).await.into_response();
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json["items"].as_array().unwrap().len(), 2);
+        assert_db_item1(json["items"][0].clone());
+        assert_db_item2(json["items"][1].clone());
     }
 }
