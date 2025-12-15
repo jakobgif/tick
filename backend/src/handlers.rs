@@ -10,18 +10,35 @@ use sqlx::Arguments;
 
 use crate::data_structs::{SearchParams, TodoItem};
 
-/// returns all todo items
+/// returns a specific range of todo items
+/// if nothing is specified it returns 25 items
+/// items are ordered by creation date, newest first
 /// # Examples
 /// ```bash
 /// curl -X GET http://localhost:3000/todos
+/// curl -X GET http://localhost:3000/todos?count=2&offset=10
 /// ```
-pub async fn list_todos(State(connection): State<SqlitePool>) -> impl IntoResponse {
+pub async fn list_todos(State(connection): State<SqlitePool>, Query(params): Query<HashMap<String, String>>) -> impl IntoResponse {
+    //extract count from request
+    let count: i64 = params.get("count").and_then(|v| v.parse().ok()).unwrap_or(25);
+    //count can only be between 1 and 100
+    let count = count.clamp(1, 100);
+
+    //extract offset from request
+    let offset: i64 = params.get("offset").and_then(|v| v.parse().ok()).unwrap_or(0);
+    //makre sure offset is not negative
+    let offset = offset.max(0);
+
     // get all database rows as result so we can check later if query was sucessful or not
     let result: Result<Vec<TodoItem>, sqlx::Error> = sqlx::query_as::<_, TodoItem>("
         SELECT  id, title, content, done, priority,
                 creation_date, due_date, finish_date
         FROM todos
+        ORDER BY creation_date DESC
+        LIMIT ? OFFSET ?
     ")
+    .bind(count)
+    .bind(offset)
     .fetch_all(&connection)
     .await;
 
