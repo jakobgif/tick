@@ -19,35 +19,24 @@ export const columns: ColumnDef<TodoItem>[] = [
   {
     accessorKey: "title",
     header: "Title",
-    minSize: 60,
-    maxSize: 80,
-    cell: ({ row }) => {
-      const content = row.getValue<string>("title")
-      return (
-        <div className="truncate">
-          {content}
-        </div>
-      )
-    },
+    cell: ({ row }) => <div className="w-[200px] truncate">{row.getValue("title")}</div>,
   },
   {
     accessorKey: "content",
     header: "Content",
-    minSize: 60,
-    maxSize: 99999,
     cell: ({ row }) => {
-      const content = row.getValue<string>("content")
       return (
-        <div className="truncate">
-          {content}
+        <div className="flex">
+          <span className="max-w-[400px] truncate font-medium">
+            {row.getValue("content")}
+          </span>
         </div>
-      )
+      );
     },
   },
   {
     accessorKey: "done",
     header: "Status",
-    size: 80,
     cell: ({ row }) => {
       const done = row.getValue<boolean>("done")
       const status = done
@@ -56,7 +45,7 @@ export const columns: ColumnDef<TodoItem>[] = [
 
       const Icon = status.icon
       return (
-        <div className="flex items-center gap-2 whitespace-nowrap">
+        <div className="flex items-center gap-2">
           <Icon className="h-4 w-4 text-muted-foreground" />
           <span>{status.label}</span>
         </div>
@@ -66,7 +55,6 @@ export const columns: ColumnDef<TodoItem>[] = [
   {
     accessorKey: "priority",
     header: "Priority",
-    size: 60,
   },
   {
     accessorKey: "due_date",
