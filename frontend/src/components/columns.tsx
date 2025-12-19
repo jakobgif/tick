@@ -1,5 +1,6 @@
 import { ColumnDef } from "@tanstack/react-table"
 import { CheckCircle, Circle } from "lucide-react"
+import { DataTableColumnHeader } from "./data-table-column-header"
 
 //this type is based on the backend data structure
 export type TodoItem = {
@@ -16,12 +17,17 @@ export type TodoItem = {
 export const columns: ColumnDef<TodoItem>[] = [
   {
     accessorKey: "title",
-    header: "Task",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Task" />
+    ),
     cell: ({ row }) => <div className="w-[100px] truncate">{row.getValue("title")}</div>,
+    enableSorting: false,
   },
   {
     accessorKey: "content",
-    header: "Description",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Description" />
+    ),
     cell: ({ row }) => {
       return (
         <div className="flex">
@@ -31,10 +37,13 @@ export const columns: ColumnDef<TodoItem>[] = [
         </div>
       );
     },
+    enableSorting: false,
   },
   {
     accessorKey: "done",
-    header: "Status",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Status" />
+    ),
     cell: ({ row }) => {
       const done = row.getValue<boolean>("done")
       const status = done
@@ -49,15 +58,20 @@ export const columns: ColumnDef<TodoItem>[] = [
         </div>
       )
     },
+    enableSorting: true,
   },
   {
     accessorKey: "priority",
-    header: "Priority",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Priority" />
+    ),
+    enableSorting: true,
   },
   {
     accessorKey: "due_date",
-    header: "Due",
-    size: 145,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Due" />
+    ),
     cell: info => {
       const date = new Date(info.getValue<number>() * 1000)
 
@@ -67,5 +81,6 @@ export const columns: ColumnDef<TodoItem>[] = [
         hour12: false,
       }).format(date)
     },
+    enableSorting: true,
   },
 ]
