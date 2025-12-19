@@ -1,6 +1,4 @@
 import { ColumnDef } from "@tanstack/react-table"
-import { Checkbox } from "./ui/checkbox"
-import { text } from "node:stream/consumers"
 import { CheckCircle, Circle } from "lucide-react"
 
 //this type is based on the backend data structure
@@ -18,16 +16,16 @@ export type TodoItem = {
 export const columns: ColumnDef<TodoItem>[] = [
   {
     accessorKey: "title",
-    header: "Title",
-    cell: ({ row }) => <div className="w-[200px] truncate">{row.getValue("title")}</div>,
+    header: "Task",
+    cell: ({ row }) => <div className="w-[100px] truncate">{row.getValue("title")}</div>,
   },
   {
     accessorKey: "content",
-    header: "Content",
+    header: "Description",
     cell: ({ row }) => {
       return (
         <div className="flex">
-          <span className="max-w-[400px] truncate font-medium">
+          <span className="max-w-[300px] truncate font-medium">
             {row.getValue("content")}
           </span>
         </div>
