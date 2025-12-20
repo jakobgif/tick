@@ -1,28 +1,69 @@
 // Jakob Frenzel
 // 10/12/25
 
-use axum::{Json, body::Bytes, extract::{Path, Query, Request, State}, response::IntoResponse};
+use std::collections::HashMap;
+
+use axum::{Json, body::Bytes, extract::{Path, Query, State}, response::IntoResponse};
 use serde_json::json;
 use sqlx::sqlite::{SqlitePool, SqliteQueryResult};
-use urlencoding::decode;
 use sqlx::Arguments;
 
-use crate::data_structs::{SearchParams, TodoItem};
+use crate::data_structs::{Order, QueryParams, SortBy, TodoItem};
 
-/// returns all todo items
+/// returns a specific range of todo items
+/// if nothing is specified it returns 25 items
+/// filters can be applied via queryparams
 /// # Examples
 /// ```bash
 /// curl -X GET http://localhost:3000/todos
+/// curl -X GET http://localhost:3000/todos?count=2&offset=10
+/// curl -X GET http://localhost:3000/todos?done=true
 /// ```
-pub async fn list_todos(State(connection): State<SqlitePool>) -> impl IntoResponse {
-    // get all database rows as result so we can check later if query was sucessful or not
-    let result: Result<Vec<TodoItem>, sqlx::Error> = sqlx::query_as::<_, TodoItem>("
-        SELECT  id, title, content, done, priority,
-                creation_date, goal_date, finish_date
+// https://docs.rs/axum/latest/axum/extract/struct.Query.html
+pub async fn list_todos(State(connection): State<SqlitePool>, Query(params): Query<QueryParams>) -> impl IntoResponse {
+    // pagination
+    let count = params.count.unwrap_or(25).clamp(1, 100);
+    let offset = params.offset.unwrap_or(0).max(0);
+
+    let sort_column = match params.sort_by.unwrap_or(SortBy::CreationDate) {
+        SortBy::CreationDate => "creation_date",
+        SortBy::DueDate => "due_date",
+        SortBy::Priority => "priority",
+    };
+
+    let sort_order = match params.order.unwrap_or(Order::Desc) {
+        Order::Asc => "ASC",
+        Order::Desc => "DESC",
+    };
+
+    // base query
+    let mut arguments = sqlx::sqlite::SqliteArguments::default();
+    let mut query = format!("
+        SELECT id, title, content, done, priority,
+               creation_date, due_date, finish_date
         FROM todos
-    ")
-    .fetch_all(&connection)
-    .await;
+        WHERE 1 = 1
+    ");
+    // https://stackoverflow.com/questions/1264681/what-is-the-purpose-of-using-where-1-1-in-sql-statements
+
+    //append queries
+    //filtering
+    if let Some(done) = params.done {
+        query.push_str(" AND done = ? ");
+        let _ = arguments.add(done);
+    }
+
+    //sorting and finally pagination
+    query.push_str(&format!(
+        " ORDER BY {} {} LIMIT ? OFFSET ?",
+        sort_column, sort_order
+    ));
+    let _ = arguments.add(count);
+    let _ = arguments.add(offset);
+
+    let result: Result<Vec<TodoItem>, sqlx::Error> = sqlx::query_as_with::<_, TodoItem, _>(&query, arguments)
+        .fetch_all(&connection)
+        .await;
 
     match result {
         Ok(items) => Json(json!({
@@ -46,7 +87,7 @@ pub async fn get_todo(State(connection): State<SqlitePool>, Path(id): Path<i64>)
     // get database row for specific ID
     let result: Result<TodoItem, sqlx::Error> = sqlx::query_as::<_, TodoItem>("
         SELECT  id, title, content, done, priority,
-                creation_date, goal_date, finish_date
+                creation_date, due_date, finish_date
         FROM todos
         WHERE id = ?
     ")
@@ -68,11 +109,12 @@ pub async fn get_todo(State(connection): State<SqlitePool>, Path(id): Path<i64>)
 
 /// update a specific todo item by ID
 /// the request body must contain a complete TodoItem as json
+/// creation date and ID are ignored as they cannot be changed
 /// # Examples
 /// ```bash
-/// curl -X PUT http://localhost:3000/todos -d '{"content":"","creation_date":0,"done":true,"finish_date":0,"goal_date":0,"id":1,"priority":0,"title":""}'
+/// curl -X PUT http://localhost:3000/todos/10 -d '{"content":"","creation_date":0,"done":true,"finish_date":0,"due_date":0,"id":0,"priority":0,"title":""}'
 /// ```
-pub async fn update_todo(State(connection): State<SqlitePool>, body: Bytes) -> impl IntoResponse {
+pub async fn update_todo(State(connection): State<SqlitePool>, Path(id): Path<i64>, body: Bytes) -> impl IntoResponse {
     //try to parse request body
     let parsed: Result<TodoItem, serde_json::Error> = serde_json::from_slice(&body);
 
@@ -91,16 +133,16 @@ pub async fn update_todo(State(connection): State<SqlitePool>, body: Bytes) -> i
     // creation_date cannot be changed
     let result: Result<SqliteQueryResult, sqlx::Error> = sqlx::query("
         UPDATE todos
-        SET title = ?, content = ?, done = ?, priority = ?, goal_date = ?, finish_date = ?
+        SET title = ?, content = ?, done = ?, priority = ?, due_date = ?, finish_date = ?
         WHERE id = ?
     ")
     .bind(payload.title)
     .bind(payload.content)
     .bind(payload.done)
     .bind(payload.priority)
-    .bind(payload.goal_date)
+    .bind(payload.due_date)
     .bind(payload.finish_date)
-    .bind(payload.id)
+    .bind(id)
     .execute(&connection)
     .await;
 
@@ -110,7 +152,7 @@ pub async fn update_todo(State(connection): State<SqlitePool>, body: Bytes) -> i
             if res.rows_affected() == 0 {
                 return Json(json!({
                     "status": "error",
-                    "message": format!("Todo with ID {} does not exist", payload.id)
+                    "message": format!("Todo with ID {} does not exist", id)
                 }));
             }
 
@@ -123,26 +165,38 @@ pub async fn update_todo(State(connection): State<SqlitePool>, body: Bytes) -> i
     }
 }
 
-/// return todo items with specific database query
+/// return todo items which title or content includes the query string
 /// # Examples
 /// ```bash
-/// curl -X GET http://localhost:3000/todos/search?done=true
+/// curl -X GET http://localhost:3000/todos/autocomplete?q=Hello,%20World!
 /// ```
-// https://docs.rs/axum/latest/axum/extract/struct.Query.html
-pub async fn search_todos(State(connection): State<SqlitePool>, Query(params): Query<SearchParams>) -> impl IntoResponse {
-    // https://stackoverflow.com/questions/1264681/what-is-the-purpose-of-using-where-1-1-in-sql-statements
-    let mut query = String::from("SELECT * FROM todos WHERE 1 = 1");
-    let mut arguments = sqlx::sqlite::SqliteArguments::default();
+pub async fn autocomplete_todos(State(connection): State<SqlitePool>, Query(params): Query<HashMap<String, String>>) -> impl IntoResponse {
+    //get the query based on the key "q"
+    //return empty json if query string is empty
+    let query = match params.get("q") {
+        Some(q) if !q.trim().is_empty() => q,
+        _ => {
+            return Json(json!({
+                "status": "ok",
+                "items": []
+            }));
+        }
+    };
 
-    if let Some(done) = params.done {
-        query.push_str(" AND done = ?");
-        let _ = arguments.add(done);
-    }
+    //prepares string so the sql query "like" works
+    //% in front and back means anything can be in front and back
+    let query_like = format!("%{}%", query);
 
-    // get all database rows as result so we can check later if query was sucessful or not
-    let result: Result<Vec<TodoItem>, sqlx::Error> = sqlx::query_as_with::<_, TodoItem, _>(&query, arguments)
-        .fetch_all(&connection)
-        .await;
+    let result = sqlx::query_as::<_, TodoItem>("
+        SELECT *
+        FROM todos
+        WHERE title LIKE ? OR content LIKE ?
+        LIMIT 10
+    ")
+    .bind(&query_like)
+    .bind(&query_like)
+    .fetch_all(&connection)
+    .await;
 
     match result {
         Ok(items) => Json(json!({
@@ -156,26 +210,35 @@ pub async fn search_todos(State(connection): State<SqlitePool>, Query(params): Q
     }
 }
 
-/// return todo items which title or content includes the query string
+/// delete a specific todo item from the database
 /// # Examples
 /// ```bash
-/// curl -X GET http://localhost:3000/todos/autocomplete?Hello,%20World!
+/// curl -X DELETE http://localhost:3000/todos/42
 /// ```
-pub async fn autocomplete_todos(req: Request) -> impl IntoResponse {
-    //get decoded string out of the query
-    //if query is empty the string is empty
-    let query = decode(req.uri().query().unwrap_or("")).expect("UTF-8");
+pub async fn delete_todo(State(connection): State<SqlitePool>, Path(id): Path<i64>) -> impl IntoResponse {
+    //delete row from database
+    let result: Result<SqliteQueryResult, sqlx::Error> = sqlx::query("
+        DELETE FROM todos WHERE id = ?
+    ")
+    .bind(id)
+    .execute(&connection)
+    .await;
 
-    //return nothing if string is empty
-    if query.is_empty() {
-        return Json(json!({
-            "status": "ok",
-            "items": []
-        }));
+    match result {
+        Ok(res) => {
+            //ID does not exits = no row got updated
+            if res.rows_affected() == 0 {
+                return Json(json!({
+                    "status": "error",
+                    "message": format!("Todo with ID {} does not exist", id)
+                }));
+            }
+
+            Json(json!({ "status": "ok" }))
+        }
+        Err(e) => Json(json!({
+            "status": "error",
+            "message": e.to_string()
+        })),
     }
-
-    Json(json!({
-        "status": "ok",
-        "query": query
-    }))
 }

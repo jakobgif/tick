@@ -3,8 +3,10 @@
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use axum::{body::Bytes, extract::{Path, Query, State}};
-    use todo_backend::{data_structs::SearchParams, handlers::{get_todo, list_todos, search_todos, update_todo}};
+    use tick_backend::{data_structs::{QueryParams}, handlers::{autocomplete_todos, delete_todo, get_todo, list_todos, update_todo}};
     use axum::{response::IntoResponse};
     use serde_json::{Value};
     use sqlx::{Executor, sqlite::{SqliteConnectOptions, SqlitePool}};
@@ -27,7 +29,7 @@ mod tests {
                     done INTEGER NOT NULL DEFAULT 0,
                     priority INTEGER,
                     creation_date INTEGER NOT NULL,
-                    goal_date INTEGER,
+                    due_date INTEGER,
                     finish_date INTEGER
                 );
             ").await.unwrap();
@@ -49,7 +51,7 @@ mod tests {
         //full entry
         sqlx::query("
                 INSERT INTO todos (
-                    title, content, done, priority, creation_date, goal_date, finish_date
+                    title, content, done, priority, creation_date, due_date, finish_date
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             ")
@@ -71,7 +73,7 @@ mod tests {
         assert_eq!(json["done"], false);
         assert_eq!(json["priority"], 0);
         assert_eq!(json["creation_date"], 1);
-        assert_eq!(json["goal_date"], 0);
+        assert_eq!(json["due_date"], 0);
         assert_eq!(json["finish_date"], 0);
     }
 
@@ -81,7 +83,7 @@ mod tests {
         assert_eq!(json["done"], true);
         assert_eq!(json["priority"], 1);
         assert_eq!(json["creation_date"], 2);
-        assert_eq!(json["goal_date"], 4);
+        assert_eq!(json["due_date"], 4);
         assert_eq!(json["finish_date"], 3);
     }
 
@@ -90,7 +92,18 @@ mod tests {
         let connection = setup_test_db().await;
 
         //call handler function on empty database
-        let mut response = list_todos(State(connection.clone())).await.into_response();
+        let response = list_todos(
+            State(connection.clone()),
+            Query(QueryParams {
+                count: None,
+                offset: None,
+                sort_by: None,
+                order: None,
+                done: None,
+            }),
+        )
+        .await
+        .into_response();
         //convert the response to a json object so we can check specific keys
         let mut body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let mut json: Value = serde_json::from_slice(&body).unwrap();
@@ -98,17 +111,90 @@ mod tests {
         //assert the response
         assert_eq!(json["status"], "error");
 
-        //fill database
-        populate_test_db(connection.clone()).await;
+        //fill database with 100 entries
+        for _ in 0..50 {
+            populate_test_db(connection.clone()).await;
+        }
 
-        response = list_todos(State(connection.clone())).await.into_response();
+        let response = list_todos(
+            State(connection.clone()),
+            Query(QueryParams {
+                count: None,
+                offset: None,
+                sort_by: None,
+                order: None,
+                done: None,
+            }),
+        )
+        .await
+        .into_response();
         body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         json = serde_json::from_slice(&body).unwrap();
 
         assert_eq!(json["status"], "ok");
+        assert_eq!(json["items"].as_array().unwrap().len(), 25);
 
+        //get 100 todos
+        let response = list_todos(
+            State(connection.clone()),
+            Query(QueryParams {
+                count: Some(100),
+                offset: None,
+                sort_by: None,
+                order: None,
+                done: None,
+            }),
+        )
+        .await
+        .into_response();
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json["items"].as_array().unwrap().len(), 100);
+
+        //get 2 oldest todos
+        let response = list_todos(
+            State(connection.clone()),
+            Query(QueryParams {
+                count: Some(2),
+                offset: Some(98),
+                sort_by: None,
+                order: None,
+                done: None,
+            }),
+        )
+        .await
+        .into_response();
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json["items"].as_array().unwrap().len(), 2);
+
+        //should be both item 1 because the creation time is hardcoded and all item2 come first and then all item1
         assert_db_item1(json["items"][0].clone());
-        assert_db_item2(json["items"][1].clone());
+        assert_db_item1(json["items"][1].clone());
+
+        //get all true times
+        let response = list_todos(
+            State(connection),
+            Query(QueryParams {
+                count: Some(100),
+                offset: None,
+                sort_by: None,
+                order: None,
+                done: Some(true),
+            }),
+        )
+        .await
+        .into_response();
+
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json["items"].as_array().unwrap().len(), 50);
     }
 
     #[tokio::test]
@@ -148,7 +234,7 @@ mod tests {
 
         //malformed json
         let malformed_json = r#"{}"#;
-        let mut response = update_todo(State(connection.clone()), Bytes::from(malformed_json)).await.into_response();
+        let mut response = update_todo(State(connection.clone()), Path(0), Bytes::from(malformed_json)).await.into_response();
         let mut body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let mut json: Value = serde_json::from_slice(&body).unwrap();
 
@@ -156,8 +242,8 @@ mod tests {
         assert_eq!(json["message"], "Invalid JSON: missing field `id` at line 1 column 2");
 
         //non existend id
-        let item_json = r#"{"content":"updated content","creation_date":0,"done":true,"finish_date":10,"goal_date":20,"id":100,"priority":100,"title":"updated title"}"#;
-        response = update_todo(State(connection.clone()), Bytes::from(item_json)).await.into_response();
+        let item_json = r#"{"content":"updated content","creation_date":0,"done":true,"finish_date":10,"due_date":20,"id":0,"priority":100,"title":"updated title"}"#;
+        response = update_todo(State(connection.clone()), Path(100), Bytes::from(item_json)).await.into_response();
         body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         json = serde_json::from_slice(&body).unwrap();
 
@@ -165,8 +251,8 @@ mod tests {
         assert_eq!(json["message"], "Todo with ID 100 does not exist");
 
         //update item 1
-        let item_json = r#"{"content":"updated content","creation_date":0,"done":true,"finish_date":10,"goal_date":20,"id":1,"priority":100,"title":"updated title"}"#;
-        response = update_todo(State(connection.clone()), Bytes::from(item_json)).await.into_response();
+        let item_json = r#"{"content":"updated content","creation_date":0,"done":true,"finish_date":10,"due_date":20,"id":0,"priority":100,"title":"updated title"}"#;
+        response = update_todo(State(connection.clone()), Path(1), Bytes::from(item_json)).await.into_response();
         body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         json = serde_json::from_slice(&body).unwrap();
 
@@ -184,36 +270,103 @@ mod tests {
         assert_eq!(json["item"]["done"], true);
         assert_eq!(json["item"]["priority"], 100);
         assert_eq!(json["item"]["creation_date"], 1);
-        assert_eq!(json["item"]["goal_date"], 20);
+        assert_eq!(json["item"]["due_date"], 20);
         assert_eq!(json["item"]["finish_date"], 10);
     }
 
     #[tokio::test]
-    async fn test_search_todos() {
+    async fn test_delete_todo() {
         let connection = setup_test_db().await;
         populate_test_db(connection.clone()).await;
 
-        //query done=true
-        let mut params = SearchParams {
-            done: Some(true)
-        };
-        let mut response = search_todos(State(connection.clone()), Query(params)).await.into_response();
+        //unknown ID
+        let mut response = delete_todo(State(connection.clone()), Path(100)).await.into_response();
         let mut body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let mut json: Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "error");
+        assert_eq!(json["message"], "Todo with ID 100 does not exist");
+
+        //delete ID 1
+        response = delete_todo(State(connection.clone()), Path(1)).await.into_response();
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+
+        //read back todos
+        response = list_todos(State(connection.clone()), Query(QueryParams {count: None, offset: None, sort_by: None, order: None, done: None}),).await.into_response();
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        //only one item in database
+        assert_eq!(json["items"].as_array().unwrap().len(), 1);
+        //remaining item matches item 2
+        assert_db_item2(json["items"][0].clone());
+    }
+
+    #[tokio::test]
+    async fn test_autocomplete_todos() {
+        let connection = setup_test_db().await;
+        populate_test_db(connection.clone()).await;
+
+        //empty string
+        let mut params = HashMap::new();
+        params.insert("q".to_string(), "".to_string());
+        let mut response = autocomplete_todos(State(connection.clone()), Query(params.clone())).await.into_response();
+        let mut body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let mut json: Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json["items"].as_array().unwrap().len(), 0);
+
+        //unkown string
+        params.clear();
+        params.insert("q".to_string(), "something that does not exist".to_string());
+        response = autocomplete_todos(State(connection.clone()), Query(params.clone())).await.into_response();
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json["items"].as_array().unwrap().len(), 0);
+
+        //search for item 1
+        //title contains a "1"
+        params.clear();
+        params.insert("q".to_string(), "1".to_string());
+        response = autocomplete_todos(State(connection.clone()), Query(params.clone())).await.into_response();
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json["items"].as_array().unwrap().len(), 1);
+        assert_db_item1(json["items"][0].clone());
+
+        //search for item 2
+        //description contains a "Hello"
+        params.clear();
+        params.insert("q".to_string(), "Hello".to_string());
+        response = autocomplete_todos(State(connection.clone()), Query(params.clone())).await.into_response();
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
 
         assert_eq!(json["status"], "ok");
         assert_eq!(json["items"].as_array().unwrap().len(), 1);
         assert_db_item2(json["items"][0].clone());
 
-        //query nothing
-        params = SearchParams {
-            done: None
-        };
-        response = search_todos(State(connection.clone()), Query(params)).await.into_response();
+        //search for both
+        //both titles contain "Test"
+        //also checking if not case senitive
+        params.clear();
+        params.insert("q".to_string(), "TEsT".to_string());
+        response = autocomplete_todos(State(connection.clone()), Query(params.clone())).await.into_response();
         body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         json = serde_json::from_slice(&body).unwrap();
 
         assert_eq!(json["status"], "ok");
         assert_eq!(json["items"].as_array().unwrap().len(), 2);
+        assert_db_item1(json["items"][0].clone());
+        assert_db_item2(json["items"][1].clone());
     }
 }

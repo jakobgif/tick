@@ -1,6 +1,8 @@
-# ToDo app using Rust
+[![Rust](https://github.com/jakobgif/rust_todo/actions/workflows/rust.yml/badge.svg?branch=main)](https://github.com/jakobgif/rust_todo/actions/workflows/rust.yml)
 
-ToDo app build in Rust. The application consists of a backend that stores items in a database and a frontend that exposes CRUD features to the user. The frontend communicates with the backend via a REST API. 
+# Tick
+
+Tick is a Todo application build in Rust. The application consists of a backend that stores items in a database and a frontend that exposes CRUD features to the user. The frontend communicates with the backend via a REST API.
 
 ## Backend
 The application uses the following techstack:
