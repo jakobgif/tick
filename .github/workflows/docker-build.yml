@@ -16,6 +16,7 @@ jobs:
       - name: Build Multi-Platform Docker Image
         uses: docker/build-push-action@v6
         with:
+          context: ./backend
           platforms: linux/amd64,linux/arm64,windows/amd64
           push: false
           tags: tick_backend:latest
