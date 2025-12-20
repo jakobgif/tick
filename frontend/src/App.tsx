@@ -1,51 +1,59 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
-import { ThemeProvider, useTheme } from "./components/theme-provider";
-import { Blockquote, H2, Muted, P } from "./components/ui/typography";
+import { useTheme } from "./components/theme-provider";
+import { H2, Muted, P } from "./components/ui/typography";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
 import { Moon, Sun } from "lucide-react";
 import { columns, TodoItem } from "./components/columns";
-import { DataTable } from "./components/data-table";
+import { DataTable, QueryParams } from "./components/data-table";
+import { toast } from "sonner";
+import { SortingState } from "@tanstack/react-table";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
-
   const { theme, setTheme } = useTheme()
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
-  const data: TodoItem[] = [
-    {
-      id: 1,
-      title: "Test item Test item Test item",
-      content: "Some long sample content. Some long sample content. Some long sample content. Some long sample content.",
-      done: false,
-      priority: 0,
-      creation_date: 1,
-      due_date: 2,
-      finish_date: 3,
-    },
-    {
-      id: 2,
-      title: "Test item 2",
-      content: "short",
-      done: true,
-      priority: 10,
-      creation_date: 2,
-      due_date: 2,
-      finish_date: 2,
+  const [todos, setTodos] = useState<TodoItem[]>([]);
+  const [sorting, setSorting] = useState<SortingState>([])
+
+  function mapSortingToQuery(sorting: SortingState): Pick<QueryParams, "sort_by" | "order"> {
+    if (!sorting.length) return {}
+
+    const { id, desc } = sorting[0]
+
+    return {
+      sort_by: id as any,
+      order: desc ? "desc" : "asc",
     }
-  ]
+  }
+
+  const fetchTodos = async () => {
+    try {
+      const query = mapSortingToQuery(sorting)
+
+      toast.info(JSON.stringify(query));
+
+      const result = await invoke<TodoItem[]>("fetch_todos", {
+        params: {
+          ...query,
+          count: 5,
+          offset: 0,
+        },
+      })
+
+      setTodos(result)
+    } catch (err: any) {
+      toast.error(err.toString())
+    }
+  };
+
+  useEffect(() => {
+    fetchTodos()
+  }, [sorting])
 
   return (
     <main className="m-5">
@@ -69,39 +77,15 @@ function App() {
           </Badge>
         </div>
       </div>
+      
+      <DataTable
+        columns={columns}
+        data={todos}
+        sorting={sorting}
+        setSorting={setSorting}
+      />
 
-      <DataTable columns={columns} data={data} />
-
-      {/*<h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>*/}
+      <Button onClick={fetchTodos}>Refresh Todos</Button>
     </main>
   );
 }

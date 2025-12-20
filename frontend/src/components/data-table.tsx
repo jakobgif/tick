@@ -2,6 +2,7 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
+  SortingState,
   useReactTable,
 } from "@tanstack/react-table"
 
@@ -13,26 +14,46 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { DataTableToolbar } from "./data-table-toolbar"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
+  sorting: SortingState
+  setSorting: React.Dispatch<React.SetStateAction<SortingState>>
+}
+
+export type SortBy = "creation_date" | "due_date" | "priority"
+export type Order = "asc" | "desc"
+
+export interface QueryParams {
+  count?: number
+  offset?: number
+  sort_by?: SortBy
+  order?: Order
+  done?: boolean
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  sorting,
+  setSorting,
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
     columns,
+    state: {
+      sorting,
+    },
+    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
   })
 
   return (
     <div className="flex flex-col gap-4">
 
-      <div>Toolbar</div>
+      {/*<DataTableToolbar table={table} />*/}
 
       <div className="overflow-hidden rounded-md border">
         <Table>
