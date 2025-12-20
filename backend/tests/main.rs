@@ -6,7 +6,7 @@ mod tests {
     use std::collections::HashMap;
 
     use axum::{body::Bytes, extract::{Path, Query, State}};
-    use todo_backend::{data_structs::{QueryParams}, handlers::{autocomplete_todos, delete_todo, get_todo, list_todos, update_todo}};
+    use tick_backend::{data_structs::{QueryParams}, handlers::{autocomplete_todos, delete_todo, get_todo, list_todos, update_todo}};
     use axum::{response::IntoResponse};
     use serde_json::{Value};
     use sqlx::{Executor, sqlite::{SqliteConnectOptions, SqlitePool}};

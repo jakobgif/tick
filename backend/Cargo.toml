@@ -1,5 +1,5 @@
 [package]
-name = "todo_backend"
+name = "tick_backend"
 version = "0.0.1"
 edition = "2024"
 
