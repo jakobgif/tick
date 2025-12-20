@@ -8,39 +8,62 @@ use serde_json::json;
 use sqlx::sqlite::{SqlitePool, SqliteQueryResult};
 use sqlx::Arguments;
 
-use crate::data_structs::{SearchParams, TodoItem};
+use crate::data_structs::{Order, QueryParams, SortBy, TodoItem};
 
 /// returns a specific range of todo items
 /// if nothing is specified it returns 25 items
-/// items are ordered by creation date, newest first
+/// filters can be applied via queryparams
 /// # Examples
 /// ```bash
 /// curl -X GET http://localhost:3000/todos
 /// curl -X GET http://localhost:3000/todos?count=2&offset=10
+/// curl -X GET http://localhost:3000/todos?done=true
 /// ```
-pub async fn list_todos(State(connection): State<SqlitePool>, Query(params): Query<HashMap<String, String>>) -> impl IntoResponse {
-    //extract count from request
-    let count: i64 = params.get("count").and_then(|v| v.parse().ok()).unwrap_or(25);
-    //count can only be between 1 and 100
-    let count = count.clamp(1, 100);
+// https://docs.rs/axum/latest/axum/extract/struct.Query.html
+pub async fn list_todos(State(connection): State<SqlitePool>, Query(params): Query<QueryParams>) -> impl IntoResponse {
+    // pagination
+    let count = params.count.unwrap_or(25).clamp(1, 100);
+    let offset = params.offset.unwrap_or(0).max(0);
 
-    //extract offset from request
-    let offset: i64 = params.get("offset").and_then(|v| v.parse().ok()).unwrap_or(0);
-    //makre sure offset is not negative
-    let offset = offset.max(0);
+    let sort_column = match params.sort_by.unwrap_or(SortBy::CreationDate) {
+        SortBy::CreationDate => "creation_date",
+        SortBy::DueDate => "due_date",
+        SortBy::Priority => "priority",
+    };
 
-    // get all database rows as result so we can check later if query was sucessful or not
-    let result: Result<Vec<TodoItem>, sqlx::Error> = sqlx::query_as::<_, TodoItem>("
-        SELECT  id, title, content, done, priority,
-                creation_date, due_date, finish_date
+    let sort_order = match params.order.unwrap_or(Order::Desc) {
+        Order::Asc => "ASC",
+        Order::Desc => "DESC",
+    };
+
+    // base query
+    let mut arguments = sqlx::sqlite::SqliteArguments::default();
+    let mut query = format!("
+        SELECT id, title, content, done, priority,
+               creation_date, due_date, finish_date
         FROM todos
-        ORDER BY creation_date DESC
-        LIMIT ? OFFSET ?
-    ")
-    .bind(count)
-    .bind(offset)
-    .fetch_all(&connection)
-    .await;
+        WHERE 1 = 1
+    ");
+    // https://stackoverflow.com/questions/1264681/what-is-the-purpose-of-using-where-1-1-in-sql-statements
+
+    //append queries
+    //filtering
+    if let Some(done) = params.done {
+        query.push_str(" AND done = ? ");
+        let _ = arguments.add(done);
+    }
+
+    //sorting and finally pagination
+    query.push_str(&format!(
+        " ORDER BY {} {} LIMIT ? OFFSET ?",
+        sort_column, sort_order
+    ));
+    let _ = arguments.add(count);
+    let _ = arguments.add(offset);
+
+    let result: Result<Vec<TodoItem>, sqlx::Error> = sqlx::query_as_with::<_, TodoItem, _>(&query, arguments)
+        .fetch_all(&connection)
+        .await;
 
     match result {
         Ok(items) => Json(json!({
@@ -134,39 +157,6 @@ pub async fn update_todo(State(connection): State<SqlitePool>, body: Bytes) -> i
 
             Json(json!({ "status": "ok" }))
         }
-        Err(e) => Json(json!({
-            "status": "error",
-            "message": e.to_string()
-        })),
-    }
-}
-
-/// return todo items with specific database query
-/// # Examples
-/// ```bash
-/// curl -X GET http://localhost:3000/todos/search?done=true
-/// ```
-// https://docs.rs/axum/latest/axum/extract/struct.Query.html
-pub async fn search_todos(State(connection): State<SqlitePool>, Query(params): Query<SearchParams>) -> impl IntoResponse {
-    // https://stackoverflow.com/questions/1264681/what-is-the-purpose-of-using-where-1-1-in-sql-statements
-    let mut query = String::from("SELECT * FROM todos WHERE 1 = 1");
-    let mut arguments = sqlx::sqlite::SqliteArguments::default();
-
-    if let Some(done) = params.done {
-        query.push_str(" AND done = ?");
-        let _ = arguments.add(done);
-    }
-
-    // get all database rows as result so we can check later if query was sucessful or not
-    let result: Result<Vec<TodoItem>, sqlx::Error> = sqlx::query_as_with::<_, TodoItem, _>(&query, arguments)
-        .fetch_all(&connection)
-        .await;
-
-    match result {
-        Ok(items) => Json(json!({
-            "status": "ok",
-            "items": items
-        })),
         Err(e) => Json(json!({
             "status": "error",
             "message": e.to_string()

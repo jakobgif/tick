@@ -43,10 +43,33 @@ pub struct TodoItem {
     pub finish_date: DateTime<Utc>
 }
 
-/// Struct to handle whatever search parameters the application offers
-/// To be used with search_todos()
-#[derive(Deserialize, Serialize)]
-pub struct SearchParams {
-    /// optional query to only return done/not done tasks
+/// Struct that contains the query parameters the application offers
+/// To be used with list_todos()
+#[derive(Debug, Deserialize, Serialize)]
+pub struct QueryParams {
+    //query
+    //pagination
+    pub count: Option<i64>,
+    pub offset: Option<i64>,
+    //sorting
+    pub sort_by: Option<SortBy>,
+    pub order: Option<Order>,
+
+    //filter
     pub done: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SortBy {
+    CreationDate,
+    DueDate,
+    Priority,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Order {
+    Asc,
+    Desc,
 }

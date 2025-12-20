@@ -6,7 +6,7 @@ mod tests {
     use std::collections::HashMap;
 
     use axum::{body::Bytes, extract::{Path, Query, State}};
-    use todo_backend::{data_structs::SearchParams, handlers::{autocomplete_todos, delete_todo, get_todo, list_todos, search_todos, update_todo}};
+    use todo_backend::{data_structs::{QueryParams}, handlers::{autocomplete_todos, delete_todo, get_todo, list_todos, update_todo}};
     use axum::{response::IntoResponse};
     use serde_json::{Value};
     use sqlx::{Executor, sqlite::{SqliteConnectOptions, SqlitePool}};
@@ -92,7 +92,18 @@ mod tests {
         let connection = setup_test_db().await;
 
         //call handler function on empty database
-        let mut response = list_todos(State(connection.clone()), Query(HashMap::new())).await.into_response();
+        let response = list_todos(
+            State(connection.clone()),
+            Query(QueryParams {
+                count: None,
+                offset: None,
+                sort_by: None,
+                order: None,
+                done: None,
+            }),
+        )
+        .await
+        .into_response();
         //convert the response to a json object so we can check specific keys
         let mut body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let mut json: Value = serde_json::from_slice(&body).unwrap();
@@ -105,7 +116,18 @@ mod tests {
             populate_test_db(connection.clone()).await;
         }
 
-        response = list_todos(State(connection.clone()), Query(HashMap::new())).await.into_response();
+        let response = list_todos(
+            State(connection.clone()),
+            Query(QueryParams {
+                count: None,
+                offset: None,
+                sort_by: None,
+                order: None,
+                done: None,
+            }),
+        )
+        .await
+        .into_response();
         body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         json = serde_json::from_slice(&body).unwrap();
 
@@ -113,9 +135,18 @@ mod tests {
         assert_eq!(json["items"].as_array().unwrap().len(), 25);
 
         //get 100 todos
-        let mut params = HashMap::new();
-        params.insert("count".to_string(), "100".to_string());
-        response = list_todos(State(connection.clone()), Query(params)).await.into_response();
+        let response = list_todos(
+            State(connection.clone()),
+            Query(QueryParams {
+                count: Some(100),
+                offset: None,
+                sort_by: None,
+                order: None,
+                done: None,
+            }),
+        )
+        .await
+        .into_response();
         body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         json = serde_json::from_slice(&body).unwrap();
 
@@ -123,10 +154,18 @@ mod tests {
         assert_eq!(json["items"].as_array().unwrap().len(), 100);
 
         //get 2 oldest todos
-        let mut params = HashMap::new();
-        params.insert("count".to_string(), "2".to_string());
-        params.insert("offset".to_string(), "98".to_string());
-        response = list_todos(State(connection.clone()), Query(params)).await.into_response();
+        let response = list_todos(
+            State(connection.clone()),
+            Query(QueryParams {
+                count: Some(2),
+                offset: Some(98),
+                sort_by: None,
+                order: None,
+                done: None,
+            }),
+        )
+        .await
+        .into_response();
         body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         json = serde_json::from_slice(&body).unwrap();
 
@@ -136,6 +175,26 @@ mod tests {
         //should be both item 1 because the creation time is hardcoded and all item2 come first and then all item1
         assert_db_item1(json["items"][0].clone());
         assert_db_item1(json["items"][1].clone());
+
+        //get all true times
+        let response = list_todos(
+            State(connection),
+            Query(QueryParams {
+                count: Some(100),
+                offset: None,
+                sort_by: None,
+                order: None,
+                done: Some(true),
+            }),
+        )
+        .await
+        .into_response();
+
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json["items"].as_array().unwrap().len(), 50);
     }
 
     #[tokio::test]
@@ -216,35 +275,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_search_todos() {
-        let connection = setup_test_db().await;
-        populate_test_db(connection.clone()).await;
-
-        //query done=true
-        let mut params = SearchParams {
-            done: Some(true)
-        };
-        let mut response = search_todos(State(connection.clone()), Query(params)).await.into_response();
-        let mut body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
-        let mut json: Value = serde_json::from_slice(&body).unwrap();
-
-        assert_eq!(json["status"], "ok");
-        assert_eq!(json["items"].as_array().unwrap().len(), 1);
-        assert_db_item2(json["items"][0].clone());
-
-        //query nothing
-        params = SearchParams {
-            done: None
-        };
-        response = search_todos(State(connection.clone()), Query(params)).await.into_response();
-        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
-        json = serde_json::from_slice(&body).unwrap();
-
-        assert_eq!(json["status"], "ok");
-        assert_eq!(json["items"].as_array().unwrap().len(), 2);
-    }
-
-    #[tokio::test]
     async fn test_delete_todo() {
         let connection = setup_test_db().await;
         populate_test_db(connection.clone()).await;
@@ -265,7 +295,7 @@ mod tests {
         assert_eq!(json["status"], "ok");
 
         //read back todos
-        response = list_todos(State(connection.clone()), Query(HashMap::new())).await.into_response();
+        response = list_todos(State(connection.clone()), Query(QueryParams {count: None, offset: None, sort_by: None, order: None, done: None}),).await.into_response();
         body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         json = serde_json::from_slice(&body).unwrap();
 
