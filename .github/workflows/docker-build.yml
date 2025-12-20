@@ -13,3 +13,9 @@ jobs:
         uses: actions/checkout@v5
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+      - name: Build Multi-Platform Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64,linux/arm64,windows/amd64
+          push: false
+          tags: tick_backend:latest
