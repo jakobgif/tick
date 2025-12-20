@@ -234,7 +234,7 @@ mod tests {
 
         //malformed json
         let malformed_json = r#"{}"#;
-        let mut response = update_todo(State(connection.clone()), Bytes::from(malformed_json)).await.into_response();
+        let mut response = update_todo(State(connection.clone()), Path(0), Bytes::from(malformed_json)).await.into_response();
         let mut body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let mut json: Value = serde_json::from_slice(&body).unwrap();
 
@@ -242,8 +242,8 @@ mod tests {
         assert_eq!(json["message"], "Invalid JSON: missing field `id` at line 1 column 2");
 
         //non existend id
-        let item_json = r#"{"content":"updated content","creation_date":0,"done":true,"finish_date":10,"due_date":20,"id":100,"priority":100,"title":"updated title"}"#;
-        response = update_todo(State(connection.clone()), Bytes::from(item_json)).await.into_response();
+        let item_json = r#"{"content":"updated content","creation_date":0,"done":true,"finish_date":10,"due_date":20,"id":0,"priority":100,"title":"updated title"}"#;
+        response = update_todo(State(connection.clone()), Path(100), Bytes::from(item_json)).await.into_response();
         body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         json = serde_json::from_slice(&body).unwrap();
 
@@ -251,8 +251,8 @@ mod tests {
         assert_eq!(json["message"], "Todo with ID 100 does not exist");
 
         //update item 1
-        let item_json = r#"{"content":"updated content","creation_date":0,"done":true,"finish_date":10,"due_date":20,"id":1,"priority":100,"title":"updated title"}"#;
-        response = update_todo(State(connection.clone()), Bytes::from(item_json)).await.into_response();
+        let item_json = r#"{"content":"updated content","creation_date":0,"done":true,"finish_date":10,"due_date":20,"id":0,"priority":100,"title":"updated title"}"#;
+        response = update_todo(State(connection.clone()), Path(1), Bytes::from(item_json)).await.into_response();
         body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         json = serde_json::from_slice(&body).unwrap();
 

@@ -109,11 +109,12 @@ pub async fn get_todo(State(connection): State<SqlitePool>, Path(id): Path<i64>)
 
 /// update a specific todo item by ID
 /// the request body must contain a complete TodoItem as json
+/// creation date and ID are ignored as they cannot be changed
 /// # Examples
 /// ```bash
-/// curl -X PUT http://localhost:3000/todos -d '{"content":"","creation_date":0,"done":true,"finish_date":0,"due_date":0,"id":1,"priority":0,"title":""}'
+/// curl -X PUT http://localhost:3000/todos/10 -d '{"content":"","creation_date":0,"done":true,"finish_date":0,"due_date":0,"id":0,"priority":0,"title":""}'
 /// ```
-pub async fn update_todo(State(connection): State<SqlitePool>, body: Bytes) -> impl IntoResponse {
+pub async fn update_todo(State(connection): State<SqlitePool>, Path(id): Path<i64>, body: Bytes) -> impl IntoResponse {
     //try to parse request body
     let parsed: Result<TodoItem, serde_json::Error> = serde_json::from_slice(&body);
 
@@ -141,7 +142,7 @@ pub async fn update_todo(State(connection): State<SqlitePool>, body: Bytes) -> i
     .bind(payload.priority)
     .bind(payload.due_date)
     .bind(payload.finish_date)
-    .bind(payload.id)
+    .bind(id)
     .execute(&connection)
     .await;
 
@@ -151,7 +152,7 @@ pub async fn update_todo(State(connection): State<SqlitePool>, body: Bytes) -> i
             if res.rows_affected() == 0 {
                 return Json(json!({
                     "status": "error",
-                    "message": format!("Todo with ID {} does not exist", payload.id)
+                    "message": format!("Todo with ID {} does not exist", id)
                 }));
             }
 

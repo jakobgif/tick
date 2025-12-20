@@ -47,8 +47,8 @@ async fn main() {
 
     // build our application with a single route
     let app = Router::new()
-        .route("/todos", get(list_todos).put(update_todo))
-        .route("/todos/{id}", get(get_todo).delete(delete_todo))
+        .route("/todos", get(list_todos))
+        .route("/todos/{id}", get(get_todo).delete(delete_todo).put(update_todo))
         .route("/todos/autocomplete", get(autocomplete_todos))
         .with_state(connection);
 
