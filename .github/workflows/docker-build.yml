@@ -22,7 +22,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: false
           tags: tick_backend:latest
-          output: type=tar,dest=./dist/tick_backend.tar
+          outputs: type=tar,dest=./dist/tick_backend.tar
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
