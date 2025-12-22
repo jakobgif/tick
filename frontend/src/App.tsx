@@ -59,7 +59,7 @@ function App() {
 
   return (
     <main className="m-5">
-      <div className="flex flex-col mb-10">
+      <div className="flex flex-col mb-5">
         <div className="flex flex-row justify-between items-center">
           <div className="flex flex-row items-baseline gap-2">
             <H2 className="mb-2">tick</H2>
@@ -75,14 +75,14 @@ function App() {
             </Button>
           </div>
         </div>
-        <div className="flex flex-row items-center gap-1">
+        {/* <div className="flex flex-row items-center gap-1">
           <Muted>Maybe start with</Muted>
           <Badge variant="outline" className="bg-(--primary)">
             <button>
               <Muted>Some item</Muted>
             </button>
           </Badge>
-        </div>
+        </div> */}
       </div>
       
       <DataTable
