@@ -3,6 +3,8 @@
 
 use axum::{Router, routing::get};
 use chrono::Utc;
+use log::{info, LevelFilter};
+use simple_logger::SimpleLogger;
 use sqlx::{Executor, sqlite::{SqliteConnectOptions, SqlitePool}};
 
 use tick_backend::handlers::{autocomplete_todos, delete_todo, get_todo, list_todos, update_todo};
@@ -10,6 +12,13 @@ use tick_backend::handlers::{autocomplete_todos, delete_todo, get_todo, list_tod
 //https://docs.rs/axum/latest/axum/#example
 #[tokio::main]
 async fn main() {
+    //init log
+    SimpleLogger::new()
+        .with_level(LevelFilter::Info)
+        .with_module_level("tick_backend", LevelFilter::Debug)
+        .init()
+        .unwrap();
+
     // connect to database
     // create new file if it does not exist
     // https://medium.com/@mikecode/rust-sqlx-sqlite-8d66dbe5e497
@@ -54,6 +63,6 @@ async fn main() {
 
     // listen globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    println!("Server started successfully at 0.0.0.0:3000");
+    info!("Server started successfully at 0.0.0.0:3000");
     axum::serve(listener, app).await.unwrap();
 }
