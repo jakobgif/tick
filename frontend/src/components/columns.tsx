@@ -54,7 +54,10 @@ export const columns = (fetchTodos: () => Promise<void>): ColumnDef<TodoItem>[] 
 
       const Icon = status.icon
 
-      const handleClick = async () => {
+      const handleClick = async (e: React.MouseEvent) => {
+        //make sure to not trigger row onclick
+        e.stopPropagation()
+
         const id = row.original.id
 
         try {
