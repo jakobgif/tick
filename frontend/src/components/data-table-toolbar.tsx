@@ -1,12 +1,15 @@
 import { Table } from "@tanstack/react-table"
 import { Input } from "./ui/input"
 import { Button } from "./ui/button"
-import { CircleFadingPlus } from "lucide-react";
+import { CircleFadingPlus, ListRestart } from "lucide-react";
+import { ButtonGroup } from "./ui/button-group";
 
 export function DataTableToolbar<TData>({
   table,
+  fetchTodos,
 }: {
   table: Table<TData>
+  fetchTodos: () => Promise<void>
 }) {
   //const isFiltered = table.getState().columnFilters.length > 0
 
@@ -22,11 +25,14 @@ export function DataTableToolbar<TData>({
           className="h-8 w-[150px] lg:w-[250px]"
         />
       </div>
-      <div>
+      <ButtonGroup>
         <Button variant="outline" size="icon-sm" aria-label="add">
           <CircleFadingPlus />
         </Button>
-      </div>
+        <Button variant="outline" size="icon-sm" aria-label="add" onClick={fetchTodos}>
+          <ListRestart />
+        </Button>
+      </ButtonGroup>
     </div>
   )
 }

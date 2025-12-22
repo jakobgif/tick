@@ -90,11 +90,10 @@ function App() {
         data={todos}
         sorting={sorting}
         setSorting={setSorting}
+        fetchTodos={fetchTodos}
       />
 
       {/* add https://ui.shadcn.com/docs/components/pagination# */}
-
-      <Button onClick={fetchTodos}>Refresh Todos</Button>
 
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
         <SheetContent>
