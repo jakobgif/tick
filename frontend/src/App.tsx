@@ -40,7 +40,7 @@ function App() {
       const result = await invoke<TodoItem[]>("fetch_todos", {
         params: {
           ...query,
-          count: 5,
+          count: 25,
           offset: 0,
         },
       })
@@ -63,7 +63,7 @@ function App() {
             <H2 className="mb-2">tick</H2>
             <P>off your personal todos.</P>
           </div>
-          <Button variant="outline" size="icon" onClick={() => toggleTheme()} className="ml-10">
+          <Button variant="outline" size="icon-sm" onClick={() => toggleTheme()} className="ml-10">
             <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
             <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
           </Button>
@@ -79,7 +79,7 @@ function App() {
       </div>
       
       <DataTable
-        columns={columns}
+        columns={columns(fetchTodos)}
         data={todos}
         sorting={sorting}
         setSorting={setSorting}

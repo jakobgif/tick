@@ -1,6 +1,8 @@
 import { ColumnDef } from "@tanstack/react-table"
 import { CheckCircle, Circle } from "lucide-react"
 import { DataTableColumnHeader } from "./data-table-column-header"
+import { invoke } from "@tauri-apps/api/core"
+import { toast } from "sonner"
 
 //this type is based on the backend data structure
 export type TodoItem = {
@@ -14,7 +16,7 @@ export type TodoItem = {
   finish_date: number //epoch seconds
 }
 
-export const columns: ColumnDef<TodoItem>[] = [
+export const columns = (fetchTodos: () => Promise<void>): ColumnDef<TodoItem>[] => [
   {
     accessorKey: "title",
     header: ({ column }) => (
@@ -51,9 +53,21 @@ export const columns: ColumnDef<TodoItem>[] = [
         : { label: "Open", icon: Circle }
 
       const Icon = status.icon
+
+      const handleClick = async () => {
+        const id = row.original.id
+
+        try {
+          await invoke<string>("toggle_todo_status", { id })
+          await fetchTodos()
+        } catch (err: any) {
+          toast.error(err.toString())
+        }
+      }
+
       return (
-        <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center gap-2" onClick={handleClick}>
+          <Icon className="h-4 w-4 text-muted-foreground"/>
           <span>{status.label}</span>
         </div>
       )
