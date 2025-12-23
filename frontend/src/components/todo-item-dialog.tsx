@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Calendar } from "./ui/calendar"
 import { priorities, TodoItem } from "./columns"
-import { ChevronDownIcon } from "lucide-react"
+import { ChevronDownIcon, Icon, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { invoke } from "@tauri-apps/api/core"
 
@@ -214,10 +214,15 @@ export function TodoItemDialog({
         </div>
           
         <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
-          <Button type="submit" onClick={handleSave}>{todo? "Save changes" : "Save"}</Button>
+          <div className="w-full flex flex-row justify-between">
+            <Button variant="destructive" size="icon"><Trash2 /></Button>
+            <div className="flex flex-row gap-2">
+              <DialogClose asChild>
+                <Button variant="outline">Cancel</Button>
+              </DialogClose>
+              <Button type="submit" onClick={handleSave}>{todo? "Save changes" : "Save"}</Button>
+            </div>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
