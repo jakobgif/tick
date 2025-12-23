@@ -15,15 +15,17 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { DataTableToolbar } from "./data-table-toolbar"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { useState } from "react";
+import { TodoItem } from "./columns";
+import { TodoItemDialog } from "./todo-item-dialog";
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
-  data: TData[]
+interface DataTableProps {
+  columns: ColumnDef<TodoItem, any>[]
+  data: TodoItem[]
   sorting: SortingState
   setSorting: React.Dispatch<React.SetStateAction<SortingState>>
+  fetchTodos: () => Promise<void>
 }
 
 export type SortBy = "creation_date" | "due_date" | "priority"
@@ -37,12 +39,13 @@ export interface QueryParams {
   done?: boolean
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable({
   columns,
   data,
   sorting,
   setSorting,
-}: DataTableProps<TData, TValue>) {
+  fetchTodos,
+}: DataTableProps) {
   const [selectedRow, setSelectedRow] = useState<TodoItem | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -57,11 +60,11 @@ export function DataTable<TData, TValue>({
   })
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 h-full">
 
-      <DataTableToolbar table={table} />
+      <DataTableToolbar table={table} fetchTodos={fetchTodos}/>
 
-      <div className="rounded-md border overflow-auto max-h-[300px]">
+      <div className="rounded-md border overflow-auto flex-1 min-h-0">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -109,48 +112,20 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit Todo</DialogTitle>
-            <DialogDescription>
-              Edit your Todo here. Click save when you&apos;re
-              done.
-            </DialogDescription>
-          </DialogHeader>
+      <TodoItemDialog 
+        open={dialogOpen} 
+        onOpenChange={setDialogOpen}
+        todo={selectedRow}
+      />
 
-          <div className="flex flex-col gap-2">
-            {/* Example for TodoItem fields */}
-            <label>
-              Title:
-              <input
-                className="w-full border rounded p-1"
-                value={selectedRow.title}
-                onChange={(e) =>
-                  setSelectedRow({ ...selectedRow, title: e.target.value })
-                }
-              />
-            </label>
-            <label>
-              Content:
-              <textarea
-                className="w-full border rounded p-1"
-                value={selectedRow.content}
-                onChange={(e) =>
-                  setSelectedRow({ ...selectedRow, content: e.target.value })
-                }
-              />
-            </label>
-          </div>
-
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-              <Button type="submit">Save changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <Button
+        onClick={() => {
+          setSelectedRow(null)
+          setDialogOpen(true)
+        }}
+      >
+        add
+      </Button>
     </div>
   )
 }
