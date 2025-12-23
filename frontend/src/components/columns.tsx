@@ -16,7 +16,7 @@ export type TodoItem = {
   finish_date: number //epoch seconds
 }
 
-const priorities = [
+export const priorities = [
   {
     label: "Low",
     value: 0,
