@@ -2,15 +2,15 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { useTheme } from "./components/theme-provider";
-import { H1, H2, Muted, P } from "./components/ui/typography";
-import { Badge } from "./components/ui/badge";
+import { H2, P } from "./components/ui/typography";
 import { Button } from "./components/ui/button";
 import { Menu, Moon, Sun } from "lucide-react";
 import { columns, TodoItem } from "./components/columns";
 import { DataTable, QueryParams } from "./components/data-table";
 import { toast } from "sonner";
 import { SortingState } from "@tanstack/react-table";
-import { Sheet, SheetContent, SheetTrigger } from "./components/ui/sheet";
+import { Sheet, SheetContent } from "./components/ui/sheet";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "./components/ui/pagination";
 
 function App() {
   const { theme, setTheme } = useTheme()
@@ -21,6 +21,9 @@ function App() {
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(0);
 
   function mapSortingToQuery(sorting: SortingState): Pick<QueryParams, "sort_by" | "order"> {
     if (!sorting.length) return {}
@@ -37,13 +40,13 @@ function App() {
     try {
       const query = mapSortingToQuery(sorting)
 
-      toast.info(JSON.stringify(query));
+      //toast.info(JSON.stringify(query));
 
       const result = await invoke<TodoItem[]>("fetch_todos", {
         params: {
           ...query,
-          count: 25,
-          offset: 0,
+          count: PAGE_SIZE,
+          offset: PAGE_SIZE * page,
         },
       })
 
@@ -55,7 +58,12 @@ function App() {
 
   useEffect(() => {
     fetchTodos()
-  }, [sorting])
+  }, [sorting, page])
+
+  //reset pagination on sorting
+  useEffect(() => {
+    setPage(0);
+  }, [sorting]);
 
   return (
     <main className="m-5 h-[calc(100vh-2.5rem)] flex flex-col">
@@ -95,8 +103,98 @@ function App() {
         />
       </div>
 
-      {/* add https://ui.shadcn.com/docs/components/pagination# */}
+      <Pagination className="justify-end">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious
+              onClick={(e) => {
+                e.preventDefault();
+                setPage((p) => Math.max(0, p - 1));
+              }}
+              aria-disabled={page === 0}
+              className={page === 0 ? "pointer-events-none opacity-50" : ""}
+            />
+          </PaginationItem>
 
+          {page == 0 && (
+            <>
+              <PaginationItem>
+                <PaginationLink isActive 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPage(() => 0);
+                  }}>
+                  1
+                </PaginationLink>
+              </PaginationItem>
+
+              <PaginationItem>
+                <PaginationLink
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPage(() => 1);
+                  }}>
+                  2
+                </PaginationLink>
+              </PaginationItem>
+
+              <PaginationItem>
+                <PaginationLink>
+                  3
+                </PaginationLink>
+              </PaginationItem>
+            </>
+          )}
+  
+          {page >= 1 && (
+            <>
+              <PaginationItem>
+                <PaginationLink
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPage((p) => p - 1);
+                  }}>
+                  {page}
+                </PaginationLink>
+              </PaginationItem>
+
+              <PaginationItem>
+                <PaginationLink isActive
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPage((p) => p);
+                  }}>
+                  {page + 1}
+                </PaginationLink>
+              </PaginationItem>
+
+              <PaginationItem>
+                <PaginationLink
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPage((p) => p + 1);
+                  }}>
+                  {page + 2}
+                </PaginationLink>
+              </PaginationItem>
+            </>
+          )}
+
+          {/* <PaginationItem>
+            <PaginationEllipsis />
+          </PaginationItem> */}
+
+          <PaginationItem>
+            <PaginationNext
+              onClick={(e) => {
+                e.preventDefault();
+                setPage((p) => p + 1);
+              }}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+      
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
         <SheetContent>
         </SheetContent>   
