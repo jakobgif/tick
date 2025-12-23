@@ -116,6 +116,7 @@ export function DataTable({
         open={dialogOpen} 
         onOpenChange={setDialogOpen}
         todo={selectedRow}
+        fetchTodos={fetchTodos}
       />
 
       <Button
