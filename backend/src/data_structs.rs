@@ -65,6 +65,7 @@ pub enum SortBy {
     CreationDate,
     DueDate,
     Priority,
+    Done,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
