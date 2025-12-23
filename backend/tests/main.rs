@@ -6,7 +6,7 @@ mod tests {
     use std::collections::HashMap;
 
     use axum::{body::Bytes, extract::{Path, Query, State}};
-    use tick_backend::{data_structs::{QueryParams}, handlers::{autocomplete_todos, delete_todo, get_todo, list_todos, update_todo}};
+    use tick_backend::{data_structs::QueryParams, handlers::{add_todo, autocomplete_todos, delete_todo, get_todo, list_todos, update_todo}};
     use axum::{response::IntoResponse};
     use serde_json::{Value};
     use sqlx::{Executor, sqlite::{SqliteConnectOptions, SqlitePool}};
@@ -368,5 +368,67 @@ mod tests {
         assert_eq!(json["items"].as_array().unwrap().len(), 2);
         assert_db_item1(json["items"][0].clone());
         assert_db_item2(json["items"][1].clone());
+    }
+
+    #[tokio::test]
+    async fn test_add_todo() {
+        let connection = setup_test_db().await;
+        //create table
+        connection.execute("
+                CREATE TABLE IF NOT EXISTS todos (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    content TEXT,
+                    done INTEGER NOT NULL DEFAULT 0,
+                    priority INTEGER,
+                    creation_date INTEGER NOT NULL,
+                    due_date INTEGER,
+                    finish_date INTEGER
+                );
+            ").await.unwrap();
+
+        //malformed json
+        let malformed_json = r#"{}"#;
+        let mut response = add_todo(State(connection.clone()), Bytes::from(malformed_json)).await.into_response();
+        let mut body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let mut json: Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "error");
+        assert_eq!(json["message"], "Invalid JSON: missing field `id` at line 1 column 2");
+
+        let item_json = r#"{"content":"new content","creation_date":1,"done":true,"finish_date":10,"due_date":20,"id":100,"priority":100,"title":"new title"}"#;
+        response = add_todo(State(connection.clone()), Bytes::from(item_json)).await.into_response();
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+
+        //read created item
+         let response = list_todos(
+            State(connection.clone()),
+            Query(QueryParams {
+                count: None,
+                offset: None,
+                sort_by: None,
+                order: None,
+                done: None,
+            }),
+        )
+        .await
+        .into_response();
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json["items"].as_array().unwrap().len(), 1);
+
+        assert_eq!(json["items"][0]["title"], "new title");
+        assert_eq!(json["items"][0]["content"], "new content");
+        assert_eq!(json["items"][0]["id"], 1);
+        assert_eq!(json["items"][0]["done"], true);
+        assert_eq!(json["items"][0]["priority"], 100);
+        assert_eq!(json["items"][0]["creation_date"], 1);
+        assert_eq!(json["items"][0]["due_date"], 20);
+        assert_eq!(json["items"][0]["finish_date"], 10);
     }
 }
