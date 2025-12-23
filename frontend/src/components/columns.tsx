@@ -1,5 +1,5 @@
 import { ColumnDef } from "@tanstack/react-table"
-import { CheckCircle, Circle } from "lucide-react"
+import { ArrowDown, ArrowRight, ArrowUp, CheckCircle, Circle } from "lucide-react"
 import { DataTableColumnHeader } from "./data-table-column-header"
 import { invoke } from "@tauri-apps/api/core"
 import { toast } from "sonner"
@@ -15,6 +15,24 @@ export type TodoItem = {
   due_date: number //epoch seconds
   finish_date: number //epoch seconds
 }
+
+const priorities = [
+  {
+    label: "Low",
+    value: 0,
+    icon: ArrowDown,
+  },
+  {
+    label: "Medium",
+    value: 100,
+    icon: ArrowRight,
+  },
+  {
+    label: "High",
+    value: 200,
+    icon: ArrowUp,
+  },
+]
 
 export const columns = (fetchTodos: () => Promise<void>): ColumnDef<TodoItem>[] => [
   {
@@ -82,6 +100,26 @@ export const columns = (fetchTodos: () => Promise<void>): ColumnDef<TodoItem>[] 
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Priority" />
     ),
+    cell: ({ row }) => {
+      const priority = priorities.find(
+        (priority) => priority.value === row.getValue("priority")
+      )
+
+      if (!priority) {
+        return (
+          <span>{row.getValue("priority")}</span>
+        )
+      }
+
+      return (
+        <div className="flex items-center gap-2">
+          {priority.icon && (
+            <priority.icon className="text-muted-foreground size-4" />
+          )}
+          <span>{priority.label}</span>
+        </div>
+      )
+    },
     enableSorting: true,
   },
   {
