@@ -2,7 +2,6 @@
 // 11/12/25
 
 use axum::{Router, routing::get};
-use chrono::Utc;
 use log::{info, LevelFilter};
 use simple_logger::SimpleLogger;
 use sqlx::{Executor, sqlite::{SqliteConnectOptions, SqlitePool}};
@@ -41,6 +40,7 @@ async fn main() {
         ").await.unwrap();
 
     // add dummy item to db
+    /* 
     sqlx::query("
             INSERT INTO todos (
                 title, content, creation_date
@@ -53,6 +53,7 @@ async fn main() {
         .execute(&connection)
         .await
         .unwrap();
+    */
 
     // build our application with a single route
     let app = Router::new()
