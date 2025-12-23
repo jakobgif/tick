@@ -14,6 +14,7 @@ services:
       - 3000:3000
     volumes:
       - db-data:/data
+    pull_policy: always
 
 volumes:
   db-data:
