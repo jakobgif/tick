@@ -32,6 +32,7 @@ pub async fn list_todos(State(connection): State<SqlitePool>, Query(params): Que
         SortBy::CreationDate => "creation_date",
         SortBy::DueDate => "due_date",
         SortBy::Priority => "priority",
+        SortBy::Done => "done",
     };
 
     let sort_order = match params.order.unwrap_or(Order::Desc) {
