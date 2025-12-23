@@ -49,7 +49,7 @@ cp ./target/release/$APP_NAME /bin/server
 FROM alpine:3.18 AS final
 
 # Create data folder for sqlite
-RUN mkdir ./data
+RUN mkdir ./data && chown -R appuser:appuser ./data
 
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
