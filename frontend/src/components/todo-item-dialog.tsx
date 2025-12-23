@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Dialog,
   DialogClose,
@@ -16,22 +16,86 @@ import { Field, FieldLabel } from "./ui/field"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Calendar } from "./ui/calendar"
-import { TodoItem } from "./columns"
+import { priorities, TodoItem } from "./columns"
 import { ChevronDownIcon } from "lucide-react"
+import { toast } from "sonner"
+import { invoke } from "@tauri-apps/api/core"
 
 interface TodoDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   todo: TodoItem | null
+  fetchTodos: () => Promise<void>
 }
 
 export function TodoItemDialog({ 
   open,
   onOpenChange,
   todo,
+  fetchTodos
 }: TodoDialogProps) {
-  const [DatePickOpen, setDatePickOpen] = useState(false)
-  const [date, setDate] = useState<Date | undefined>(undefined)
+  const [title, setTitle] = useState(todo?.title || "");
+  const [content, setContent] = useState(todo?.content || "");
+  const [done, setDone] = useState(todo?.done || false);
+  const [priority, setPriority] = useState<number>(0);
+
+  // const [dueDate, setDueDate] = useState<Date | undefined>(
+  //   todo ? new Date(todo.due_date) : undefined
+  // );
+  // const [dueTime, setDueTime] = useState(todo ? formatTime(todo.due_date) : "10:30:00");
+  // const [datePickOpen, setDatePickOpen] = useState(false);
+
+  //init state when dialog opens or todo changes
+  useEffect(() => {
+    if (todo) {
+      setTitle(todo.title)
+      setContent(todo.content)
+      setDone(todo.done)
+      setPriority(todo.priority)
+      //setDueDate(new Date(todo.due_date * 1000))
+    } else {
+      setTitle("")
+      setContent("")
+      setDone(false)
+      setPriority(0)
+      //setDueDate(undefined) //today
+    }
+  }, [todo, open])
+
+  const handleSave = async () => {
+    if (!title.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+
+    //const dueDate = mergeDateTime(date, time);
+    //const now = new Date();
+
+    const newTodo: TodoItem = {
+      id: todo?.id || 0,
+      title,
+      content,
+      done,
+      priority,
+      creation_date: 0,
+      due_date: 0,
+      finish_date: 0,
+    };
+
+    try {
+      if (todo) {
+        // Update existing todo
+        await invoke<string>("update_todo", { todo: newTodo })
+      } else {
+        // Create new todo
+        await invoke<string>("create_todo", { todo: newTodo })
+      }
+      onOpenChange(false);
+      fetchTodos();
+    } catch (err) {
+      toast.error("Failed to save todo: " + err);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -48,7 +112,7 @@ export function TodoItemDialog({
           <FieldLabel>
             Title
           </FieldLabel>
-          <Input type="text" placeholder={todo? todo.title : "drink water"} />
+          <Input type="text" value={title} placeholder={"drink water"} onChange={(e) => setTitle(e.target.value)}/>
         </Field>
 
         <Field>
@@ -56,7 +120,9 @@ export function TodoItemDialog({
             Description
           </FieldLabel>
           <Textarea
-            placeholder={todo? todo.content : "drink 3.7 liters of water today"}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder={"drink 3.7 liters of water today"}
             className="resize-none"
           />
         </Field>
@@ -69,7 +135,8 @@ export function TodoItemDialog({
                   Done
                 </FieldLabel>
                 <Checkbox
-                  checked={todo?.done || false}
+                  checked={done}
+                  onCheckedChange={(v) => setDone(Boolean(v))}
                 />
               </Field>
             </div>
@@ -80,14 +147,22 @@ export function TodoItemDialog({
               <FieldLabel>
                 Priority
               </FieldLabel>
-              <Select defaultValue="">
+              <Select 
+                value={priority.toString()}
+                onValueChange={(v) => setPriority(Number(v))}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Low" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Low">Low</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="High">High</SelectItem>
+                  {[...priorities].reverse().map((p) => (
+                    <SelectItem key={p.value} value={p.value.toString()}>
+                      <div className="flex items-center gap-2">
+                        <p.icon />
+                        {p.label}
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </Field>
@@ -99,7 +174,7 @@ export function TodoItemDialog({
             <FieldLabel>
               Due Date
             </FieldLabel>
-            <Popover open={DatePickOpen} onOpenChange={setDatePickOpen}>
+            {/* <Popover open={datePickOpen} onOpenChange={setDatePickOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -121,7 +196,7 @@ export function TodoItemDialog({
                   }}
                 />
               </PopoverContent>
-            </Popover>
+            </Popover> */}
           </Field>
 
           <Field>
@@ -142,7 +217,7 @@ export function TodoItemDialog({
           <DialogClose asChild>
             <Button variant="outline">Cancel</Button>
           </DialogClose>
-          <Button type="submit">{todo? "Save changes" : "Save"}</Button>
+          <Button type="submit" onClick={handleSave}>{todo? "Save changes" : "Save"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
