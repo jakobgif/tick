@@ -21,6 +21,7 @@ function App() {
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<boolean | undefined>(undefined);
 
   const PAGE_SIZE = 25;
   const [page, setPage] = useState(0);
@@ -47,6 +48,7 @@ function App() {
           ...query,
           count: PAGE_SIZE,
           offset: PAGE_SIZE * page,
+          done: statusFilter,
         },
       })
 
@@ -58,12 +60,12 @@ function App() {
 
   useEffect(() => {
     fetchTodos()
-  }, [sorting, page])
+  }, [sorting, page, statusFilter])
 
   //reset pagination on sorting
   useEffect(() => {
     setPage(0);
-  }, [sorting]);
+  }, [sorting, statusFilter]);
 
   return (
     <main className="m-5 h-[calc(100vh-2.5rem)] flex flex-col">
@@ -100,6 +102,8 @@ function App() {
           sorting={sorting}
           setSorting={setSorting}
           fetchTodos={fetchTodos}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
         />
       </div>
 
