@@ -58,10 +58,15 @@ export function DataTable({
     getCoreRowModel: getCoreRowModel(),
   })
 
+  const handleAddTodo = () => {
+    setSelectedRow(null)
+    setDialogOpen(true)
+  }
+
   return (
     <div className="flex flex-col gap-4 h-full">
 
-      <DataTableToolbar table={table} fetchTodos={fetchTodos}/>
+      <DataTableToolbar table={table} fetchTodos={fetchTodos} onAdd={handleAddTodo}/>
 
       <div className="rounded-md border overflow-auto flex-1 min-h-0">
         <Table>
