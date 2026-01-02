@@ -1,5 +1,5 @@
-[![Backend Rust Unit Test](https://github.com/jakobgif/rust_todo/actions/workflows/rust.yml/badge.svg?branch=main)](https://github.com/jakobgif/rust_todo/actions/workflows/rust.yml)
-[![Build Backend Docker Image](https://github.com/jakobgif/tick/actions/workflows/docker-build.yml/badge.svg)](https://github.com/jakobgif/tick/actions/workflows/docker-build.yml)
+[![Rust Backend Unit Tests](https://github.com/jakobgif/tick/actions/workflows/rust.yml/badge.svg?branch=main)](https://github.com/jakobgif/tick/actions/workflows/rust.yml)
+[![Build Backend Docker Image](https://github.com/jakobgif/tick/actions/workflows/docker-build.yml/badge.svg?branch=main)](https://github.com/jakobgif/tick/actions/workflows/docker-build.yml)
 
 # Tick
 
@@ -11,3 +11,4 @@ The application uses the following techstack:
 - [SQLx](https://docs.rs/sqlx_wasi/latest/sqlx/) for database access
 
 - SQLite database
+
