@@ -1,5 +1,5 @@
 [package]
-name = "todo"
+name = "tick"
 version = "0.0.1"
 description = "A ToDo app build in Rust"
 authors = ["Jakob Frenzel"]
