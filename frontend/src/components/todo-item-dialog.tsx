@@ -83,6 +83,7 @@ export function TodoItemDialog({
     };
 
     try {
+      onOpenChange(false);
       if (todo) {
         // Update existing todo
         await invoke<string>("update_todo", { todo: newTodo })
@@ -90,7 +91,6 @@ export function TodoItemDialog({
         // Create new todo
         await invoke<string>("create_todo", { todo: newTodo })
       }
-      onOpenChange(false);
       fetchTodos();
     } catch (err) {
       toast.error("Failed to save todo: " + err);
@@ -99,8 +99,8 @@ export function TodoItemDialog({
 
   const handleDelete = async () => {
     try {
-      await invoke<string>("delete_todo", { todo })
       onOpenChange(false);
+      await invoke<string>("delete_todo", { todo })
       fetchTodos();
     } catch (err) {
       toast.error("Failed to delete todo: " + err);
