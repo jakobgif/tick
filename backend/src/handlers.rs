@@ -51,6 +51,14 @@ pub async fn list_todos(State(connection): State<SqlitePool>, Query(params): Que
     // https://stackoverflow.com/questions/1264681/what-is-the-purpose-of-using-where-1-1-in-sql-statements
 
     //append queries
+    // search
+    if let Some(search) = &params.search {
+        let query_like = format!("%{}%", search);
+        query.push_str(" AND (title LIKE ? OR content LIKE ?)");
+        let _ = arguments.add(query_like.clone());
+        let _ = arguments.add(query_like);
+    }
+
     //filtering
     if let Some(done) = params.done {
         query.push_str(" AND done = ? ");

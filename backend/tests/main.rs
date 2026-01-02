@@ -100,6 +100,7 @@ mod tests {
                 sort_by: None,
                 order: None,
                 done: None,
+                search: None,
             }),
         )
         .await
@@ -124,6 +125,7 @@ mod tests {
                 sort_by: None,
                 order: None,
                 done: None,
+                search: None,
             }),
         )
         .await
@@ -143,6 +145,7 @@ mod tests {
                 sort_by: None,
                 order: None,
                 done: None,
+                search: None,
             }),
         )
         .await
@@ -162,6 +165,7 @@ mod tests {
                 sort_by: None,
                 order: None,
                 done: None,
+                search: None,
             }),
         )
         .await
@@ -178,13 +182,35 @@ mod tests {
 
         //get all true times
         let response = list_todos(
-            State(connection),
+            State(connection.clone()),
             Query(QueryParams {
                 count: Some(100),
                 offset: None,
                 sort_by: None,
                 order: None,
                 done: Some(true),
+                search: None,
+            }),
+        )
+        .await
+        .into_response();
+
+        body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        json = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json["items"].as_array().unwrap().len(), 50);
+
+        //get item based on title
+        let response = list_todos(
+            State(connection.clone()),
+            Query(QueryParams {
+                count: Some(100),
+                offset: None,
+                sort_by: None,
+                order: None,
+                done: None,
+                search: Some("est2".to_string()),
             }),
         )
         .await
@@ -295,7 +321,7 @@ mod tests {
         assert_eq!(json["status"], "ok");
 
         //read back todos
-        response = list_todos(State(connection.clone()), Query(QueryParams {count: None, offset: None, sort_by: None, order: None, done: None}),).await.into_response();
+        response = list_todos(State(connection.clone()), Query(QueryParams {count: None, offset: None, sort_by: None, order: None, done: None, search: None}),).await.into_response();
         body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         json = serde_json::from_slice(&body).unwrap();
 
@@ -412,6 +438,7 @@ mod tests {
                 sort_by: None,
                 order: None,
                 done: None,
+                search: None,
             }),
         )
         .await
