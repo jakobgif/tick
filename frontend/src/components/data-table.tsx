@@ -29,7 +29,7 @@ interface DataTableProps {
   setStatusFilter: React.Dispatch<React.SetStateAction<boolean | undefined>>
 }
 
-export type SortBy = "creation_date" | "due_date" | "priority"
+export type SortBy = "creation_date" | "due_date" | "priority" | "done"
 export type Order = "asc" | "desc"
 
 export interface QueryParams {
