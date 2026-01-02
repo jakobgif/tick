@@ -20,6 +20,7 @@ import { priorities, TodoItem } from "./columns"
 import { ChevronDownIcon, Icon, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { invoke } from "@tauri-apps/api/core"
+import { format } from "date-fns"
 
 interface TodoDialogProps {
   open: boolean
@@ -222,7 +223,43 @@ export function TodoItemDialog({
             />
           </Field>
         </div>
-          
+
+        {todo && (
+          <div className="flex flex-col gap-1">
+            <Field className="text-muted-foreground">
+              <FieldLabel>
+                Created on:{" "}
+                {todo?.creation_date
+                  ? new Intl.DateTimeFormat(undefined, {
+                      month: "2-digit",
+                      day: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                    }).format(new Date(todo.creation_date * 1000))
+                  : "—"}
+              </FieldLabel>
+            </Field>
+
+            <Field className="text-muted-foreground">
+              <FieldLabel>
+                Closed on:{" "}
+                {todo?.finish_date
+                  ? new Intl.DateTimeFormat(undefined, {
+                      month: "2-digit",
+                      day: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                    }).format(new Date(todo.finish_date * 1000))
+                  : "—"}
+              </FieldLabel>
+            </Field>
+          </div>
+        )}        
+        
         <DialogFooter>
           <div className="w-full flex flex-row justify-between">
             {todo ? (
