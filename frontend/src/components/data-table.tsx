@@ -15,7 +15,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { DataTableToolbar } from "./data-table-toolbar"
-import { Button } from "./ui/button";
 import { useState } from "react";
 import { TodoItem } from "./columns";
 import { TodoItemDialog } from "./todo-item-dialog";
@@ -118,15 +117,6 @@ export function DataTable({
         todo={selectedRow}
         fetchTodos={fetchTodos}
       />
-
-      <Button
-        onClick={() => {
-          setSelectedRow(null)
-          setDialogOpen(true)
-        }}
-      >
-        add
-      </Button>
     </div>
   )
 }
