@@ -57,6 +57,9 @@ pub struct QueryParams {
 
     //filter
     pub done: Option<bool>,
+
+    //searchstring
+    pub search: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
