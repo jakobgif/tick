@@ -17,10 +17,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Calendar } from "./ui/calendar"
 import { priorities, TodoItem } from "./columns"
-import { ChevronDownIcon, Icon, Trash2 } from "lucide-react"
+import { ChevronDownIcon, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { invoke } from "@tauri-apps/api/core"
-import { format } from "date-fns"
 
 interface TodoDialogProps {
   open: boolean
@@ -39,12 +38,9 @@ export function TodoItemDialog({
   const [content, setContent] = useState(todo?.content || "");
   const [done, setDone] = useState(todo?.done || false);
   const [priority, setPriority] = useState<number>(0);
-
-  // const [dueDate, setDueDate] = useState<Date | undefined>(
-  //   todo ? new Date(todo.due_date) : undefined
-  // );
-  // const [dueTime, setDueTime] = useState(todo ? formatTime(todo.due_date) : "10:30:00");
-  // const [datePickOpen, setDatePickOpen] = useState(false);
+  const [dueDate, setDueDate] = useState<Date | undefined>(undefined)
+  const [dueTime, setDueTime] = useState("")
+  const [datePickOpen, setDatePickOpen] = useState(false)
 
   //init state when dialog opens or todo changes
   useEffect(() => {
@@ -53,15 +49,33 @@ export function TodoItemDialog({
       setContent(todo.content)
       setDone(todo.done)
       setPriority(todo.priority)
-      //setDueDate(new Date(todo.due_date * 1000))
+
+      const d = new Date(todo.due_date * 1000)
+      setDueDate(d)
+      setDueTime(d.toTimeString().slice(0, 5))
     } else {
       setTitle("")
       setContent("")
       setDone(false)
       setPriority(0)
-      //setDueDate(undefined) //today
+
+      setDueDate(undefined)
+      setDueTime("10:30")
     }
   }, [todo, open])
+
+  function mergeDateAndTime(date: Date, time: string): number {
+    const [hours, minutes] = time.split(":").map(Number)
+    const merged = new Date(date)
+
+    merged.setHours(hours)
+    merged.setMinutes(minutes)
+    merged.setSeconds(0)
+    merged.setMilliseconds(0)
+
+    //get time is utc based
+    return Math.floor(merged.getTime() / 1000)
+  }
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -69,8 +83,10 @@ export function TodoItemDialog({
       return;
     }
 
-    //const dueDate = mergeDateTime(date, time);
-    //const now = new Date();
+    if (!dueDate) {
+      toast.error("Due date is required");
+      return;
+    }
 
     const newTodo: TodoItem = {
       id: todo?.id || 0,
@@ -79,8 +95,8 @@ export function TodoItemDialog({
       done,
       priority,
       creation_date: 0,
-      due_date: 0,
       finish_date: 0,
+      due_date: mergeDateAndTime(dueDate, dueTime)
     };
 
     try {
@@ -185,29 +201,35 @@ export function TodoItemDialog({
             <FieldLabel>
               Due Date
             </FieldLabel>
-            {/* <Popover open={datePickOpen} onOpenChange={setDatePickOpen}>
+            <Popover open={datePickOpen} onOpenChange={setDatePickOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   id="date-picker"
                   className="w-32 justify-between font-normal"
                 >
-                  {date ? date.toLocaleDateString() : "Select date"}
+                  {dueDate
+                    ? new Intl.DateTimeFormat(undefined, {
+                        month: "2-digit",
+                        day: "2-digit",
+                        year: "numeric",
+                      }).format(dueDate)
+                    : "Select date"}
                   <ChevronDownIcon />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto overflow-hidden p-0" align="start">
                 <Calendar
                   mode="single"
-                  selected={date}
+                  selected={dueDate}
                   captionLayout="dropdown"
                   onSelect={(date) => {
-                    setDate(date)
+                    setDueDate(date)
                     setDatePickOpen(false)
                   }}
                 />
               </PopoverContent>
-            </Popover> */}
+            </Popover>
           </Field>
 
           <Field>
@@ -216,9 +238,9 @@ export function TodoItemDialog({
             </FieldLabel>
             <Input
               type="time"
-              id="time-picker"
-              step="1"
-              defaultValue="10:30:00"
+              value={dueTime}
+              onChange={(e) => setDueTime(e.target.value)}
+              step="60"
               className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
             />
           </Field>
