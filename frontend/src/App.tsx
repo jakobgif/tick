@@ -67,7 +67,7 @@ function App() {
 
   return (
     <main className="m-5 h-[calc(100vh-2.5rem)] flex flex-col">
-      <div className="flex flex-col mb-5">
+      <div className="flex flex-col mb-2">
         <div className="flex flex-row justify-between items-center">
           <div className="flex flex-row items-baseline gap-2">
             <H2 className="mb-2">tick</H2>
@@ -103,7 +103,7 @@ function App() {
         />
       </div>
 
-      <Pagination className="justify-end">
+      <Pagination className="justify-end mt-2">
         <PaginationContent>
           <PaginationItem>
             <PaginationPrevious
