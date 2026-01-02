@@ -17,7 +17,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             fetch_todos,
-            toggle_todo_status
+            toggle_todo_status,
+            create_todo,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -110,6 +111,41 @@ async fn toggle_todo_status(id: i64) -> Result<String, String> {
     match parsed.status.as_str() {
         "ok" => {
             Ok("Todo status updated".to_string())
+        }
+        "error" => {
+            let msg = parsed.message.unwrap_or("Unknown error".into());
+            Err(msg)
+        }
+        other => {
+            Err(format!("Unexpected status: {}", other))
+        }
+    }
+}
+
+#[tauri::command]
+async fn create_todo(mut todo: TodoItem) -> Result<String, String> {
+    let client = reqwest::Client::new();
+
+    //get the todo based on id
+    let url = format!("http://localhost:3000/todos");
+
+    //set creation date
+    todo.creation_date = Utc::now();
+
+    let response = client
+        .post(&url)
+        .json(&todo)
+        .send()
+        .await
+        .map_err(|e| { format!("Request error: {}", e) })?;
+
+    let raw_body = response.text().await.map_err(|e| { e.to_string() })?;
+
+    let parsed: ApiResponse<TodoItem> = serde_json::from_str(&raw_body).map_err(|e| {format!("JSON parse error: {}", e) })?;
+
+    match parsed.status.as_str() {
+        "ok" => {
+            Ok("Todo created".to_string())
         }
         "error" => {
             let msg = parsed.message.unwrap_or("Unknown error".into());
