@@ -236,6 +236,7 @@ export function TodoItemDialog({
                       year: "numeric",
                       hour: "2-digit",
                       minute: "2-digit",
+                      second: "2-digit",
                       hour12: false,
                     }).format(new Date(todo.creation_date * 1000))
                   : "—"}
@@ -252,6 +253,7 @@ export function TodoItemDialog({
                       year: "numeric",
                       hour: "2-digit",
                       minute: "2-digit",
+                      second: "2-digit",
                       hour12: false,
                     }).format(new Date(todo.finish_date * 1000))
                   : "—"}
