@@ -129,12 +129,19 @@ export const columns = (fetchTodos: () => Promise<void>): ColumnDef<TodoItem>[] 
     ),
     cell: info => {
       const date = new Date(info.getValue<number>() * 1000)
+      const now = new Date()
 
-      return new Intl.DateTimeFormat("en-GB", {
-        dateStyle: "short",
-        timeStyle: "short",
-        hour12: false,
-      }).format(date)
+      const isOverdue = !info.row.original.done && date < now
+
+      return (
+        <span className={isOverdue ? "text-destructive" : ""}>
+          {new Intl.DateTimeFormat("en-GB", {
+            dateStyle: "short",
+            timeStyle: "short",
+            hour12: false,
+          }).format(date)}
+        </span>
+      )
     },
     enableSorting: true,
   },
