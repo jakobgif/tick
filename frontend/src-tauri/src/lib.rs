@@ -20,6 +20,7 @@ pub fn run() {
             toggle_todo_status,
             create_todo,
             update_todo,
+            delete_todo,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -211,6 +212,37 @@ async fn update_todo(mut todo: TodoItem) -> Result<String, String> {
     match parsed.status.as_str() {
         "ok" => {
             Ok("Todo updated".to_string())
+        }
+        "error" => {
+            let msg = parsed.message.unwrap_or("Unknown error".into());
+            Err(msg)
+        }
+        other => {
+            Err(format!("Unexpected status: {}", other))
+        }
+    }
+}
+
+#[tauri::command]
+async fn delete_todo(todo: TodoItem) -> Result<String, String> {
+    let client = reqwest::Client::new();
+
+    //delete todo item based on ID
+    let url = format!("http://localhost:3000/todos/{}", todo.id);
+
+    let response = client
+        .delete(&url)
+        .send()
+        .await
+        .map_err(|e| { format!("Request error: {}", e) })?;
+
+    let raw_body = response.text().await.map_err(|e| { e.to_string() })?;
+
+    let parsed: ApiResponse<TodoItem> = serde_json::from_str(&raw_body).map_err(|e| {format!("JSON parse error: {}", e) })?;
+
+    match parsed.status.as_str() {
+        "ok" => {
+            Ok("Todo deleted".to_string())
         }
         "error" => {
             let msg = parsed.message.unwrap_or("Unknown error".into());

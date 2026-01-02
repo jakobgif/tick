@@ -97,6 +97,16 @@ export function TodoItemDialog({
     }
   };
 
+  const handleDelete = async () => {
+    try {
+      await invoke<string>("delete_todo", { todo })
+      onOpenChange(false);
+      fetchTodos();
+    } catch (err) {
+      toast.error("Failed to delete todo: " + err);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -215,7 +225,11 @@ export function TodoItemDialog({
           
         <DialogFooter>
           <div className="w-full flex flex-row justify-between">
-            <Button variant="destructive" size="icon"><Trash2 /></Button>
+            {todo ? (
+              <Button variant="destructive" size="icon" onClick={handleDelete}><Trash2 /></Button>
+            ) : (
+              <div></div>
+            )}
             <div className="flex flex-row gap-2">
               <DialogClose asChild>
                 <Button variant="outline">Cancel</Button>
