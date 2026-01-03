@@ -1,7 +1,6 @@
-import { Table } from "@tanstack/react-table"
 import { Input } from "./ui/input"
 import { Button } from "./ui/button"
-import { Check, CheckCircle, Circle, CircleFadingPlus, ListRestart, PlusCircle } from "lucide-react";
+import { Check, CheckCircle, Circle, CircleFadingPlus, ListRestart, PlusCircle, X } from "lucide-react";
 import { ButtonGroup } from "./ui/button-group";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandGroup, CommandItem, CommandList } from "./ui/command";
@@ -28,17 +27,19 @@ export function DataTableToolbar({
   return (
     <div className="flex items-center justify-between">
       <div className="flex flex-1 items-center gap-2">
-        <div>
-          <Input
-            placeholder="Filter tasks..."
-            value={searchString ?? ""}
-            onChange={(e) => setSearchString(e.target.value || undefined)}
-            className="h-8 w-[150px] lg:w-[250px]"
-          />
+        <Input
+          placeholder="Filter tasks..."
+          value={searchString ?? ""}
+          onChange={(e) => {
+            const value = e.target.value
+            setSearchString(value.trim() === "" ? undefined : value)
+          }}
+          className="h-8 w-[150px] lg:w-[250px]"
+        />
 
-        {/* add x button at the end of the input field to clear the filter input field */}
-        </div>
-        
+        <Button variant="outline" size="icon-sm" onClick={() => setSearchString(undefined)} disabled={searchString === undefined}>
+          <X />
+        </Button>
 
         <Popover open={popupOpen} onOpenChange={setPopupOpen}>
           <PopoverTrigger asChild>
