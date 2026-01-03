@@ -27,6 +27,8 @@ interface DataTableProps {
   fetchTodos: () => Promise<void>
   statusFilter: boolean | undefined
   setStatusFilter: React.Dispatch<React.SetStateAction<boolean | undefined>>
+  searchString: string | undefined
+  setSearchString: React.Dispatch<React.SetStateAction<string | undefined>>
 }
 
 export type SortBy = "creation_date" | "due_date" | "priority" | "done"
@@ -38,6 +40,7 @@ export interface QueryParams {
   sort_by?: SortBy
   order?: Order
   done?: boolean
+  search?: string
 }
 
 export function DataTable({
@@ -48,6 +51,8 @@ export function DataTable({
   fetchTodos,
   statusFilter,
   setStatusFilter,
+  searchString,
+  setSearchString,
 }: DataTableProps) {
   const [selectedRow, setSelectedRow] = useState<TodoItem | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -71,11 +76,12 @@ export function DataTable({
     <div className="flex flex-col gap-4 h-full">
 
       <DataTableToolbar 
-        table={table} 
         fetchTodos={fetchTodos} 
         onAdd={handleAddTodo}
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
+        searchString={searchString}
+        setSearchString={setSearchString}
       />
 
       <div className="rounded-md border overflow-auto flex-1 min-h-0">

@@ -22,6 +22,7 @@ function App() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(undefined);
+  const [searchString, setSearchString] = useState<string | undefined>(undefined);
 
   const PAGE_SIZE = 25;
   const [page, setPage] = useState(0);
@@ -41,14 +42,13 @@ function App() {
     try {
       const query = mapSortingToQuery(sorting)
 
-      //toast.info(JSON.stringify(query));
-
       const result = await invoke<TodoItem[]>("fetch_todos", {
         params: {
           ...query,
           count: PAGE_SIZE,
           offset: PAGE_SIZE * page,
           done: statusFilter,
+          search: searchString,
         },
       })
 
@@ -60,12 +60,12 @@ function App() {
 
   useEffect(() => {
     fetchTodos()
-  }, [sorting, page, statusFilter])
+  }, [sorting, page, statusFilter, searchString])
 
   //reset pagination on sorting
   useEffect(() => {
     setPage(0);
-  }, [sorting, statusFilter]);
+  }, [sorting, statusFilter, searchString]);
 
   return (
     <main className="m-5 h-[calc(100vh-2.5rem)] flex flex-col">
@@ -85,14 +85,6 @@ function App() {
             </Button>
           </div>
         </div>
-        {/* <div className="flex flex-row items-center gap-1">
-          <Muted>Maybe start with</Muted>
-          <Badge variant="outline" className="bg-(--primary)">
-            <button>
-              <Muted>Some item</Muted>
-            </button>
-          </Badge>
-        </div> */}
       </div>
 
       <div className="flex-1 min-h-0">
@@ -104,6 +96,8 @@ function App() {
           fetchTodos={fetchTodos}
           statusFilter={statusFilter}
           setStatusFilter={setStatusFilter}
+          searchString={searchString}
+          setSearchString={setSearchString}
         />
       </div>
 

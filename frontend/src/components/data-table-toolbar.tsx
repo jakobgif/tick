@@ -8,32 +8,37 @@ import { Command, CommandGroup, CommandItem, CommandList } from "./ui/command";
 import { useState } from "react";
 import { Separator } from "./ui/separator";
 
-export function DataTableToolbar<TData>({
-  table,
+export function DataTableToolbar({
   fetchTodos,
   onAdd,
   statusFilter,
   setStatusFilter,
+  searchString,
+  setSearchString,
 }: {
-  table: Table<TData>
   fetchTodos: () => Promise<void>
   onAdd: () => void
   statusFilter: boolean | undefined
   setStatusFilter: (v: boolean | undefined) => void
+  searchString: string | undefined
+  setSearchString: (v: string | undefined) => void
 }) {
   const [popupOpen, setPopupOpen] = useState(false);
 
   return (
     <div className="flex items-center justify-between">
       <div className="flex flex-1 items-center gap-2">
-        <Input
-          placeholder="Filter tasks..."
-          value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("title")?.setFilterValue(event.target.value)
-          }
-          className="h-8 w-[150px] lg:w-[250px]"
-        />
+        <div>
+          <Input
+            placeholder="Filter tasks..."
+            value={searchString ?? ""}
+            onChange={(e) => setSearchString(e.target.value || undefined)}
+            className="h-8 w-[150px] lg:w-[250px]"
+          />
+
+        {/* add x button at the end of the input field to clear the filter input field */}
+        </div>
+        
 
         <Popover open={popupOpen} onOpenChange={setPopupOpen}>
           <PopoverTrigger asChild>
