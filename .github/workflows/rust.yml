@@ -11,6 +11,8 @@ on:
     paths:
       - "backend/**"
 
+  workflow_dispatch:
+
 jobs:
   test:
     runs-on: [ ubuntu-latest, self-hosted ]
