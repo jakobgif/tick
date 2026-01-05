@@ -4,8 +4,9 @@
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 
-/// Struct that contains all data a todo item consists of
-/// matches the database fields
+/// Struct that contains all data a todo item consists of.
+/// 
+/// This struct matches the database fields.
 #[derive(Deserialize, Serialize, sqlx::FromRow)]
 pub struct TodoItem {
     /// unique id for the todo item
@@ -21,44 +22,57 @@ pub struct TodoItem {
     pub done: bool,
 
     /// priority levels
-    /// 0 least important
-    /// i16::MAX most important
+    /// 
+    /// - `0` = least important  
+    /// - `i16::MAX` = most important
     pub priority: i16,
 
     /// datetime when item was created
-    /// timestamp created on client side
-    /// serialized as epoch seconds
+    /// 
+    /// - timestamp created on client side
+    /// - serialized as epoch seconds
     #[serde(with = "chrono::serde::ts_seconds")]
     pub creation_date: DateTime<Utc>,
 
     /// datetime when the task should be finished
-    /// serialized as epoch seconds
+    /// 
+    /// - serialized as epoch seconds
     #[serde(with = "chrono::serde::ts_seconds")]
     pub due_date: DateTime<Utc>,
 
     /// datetime when the task actually was finished
-    /// timestamp created on client side
-    /// serialized as epoch seconds
+    /// 
+    /// - timestamp created on client side
+    /// - serialized as epoch seconds
     #[serde(with = "chrono::serde::ts_seconds")]
     pub finish_date: DateTime<Utc>
 }
 
+/// [`list_todos()`]: crate::handlers::list_todos
 /// Struct that contains the query parameters the application offers
-/// To be used with list_todos()
+/// 
+/// Use this struct with [`list_todos()`] to customize the results via
+/// pagination, sorting, filtering, and search.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct QueryParams {
-    //query
-    //pagination
+    /// Maximum number of todo items to return.
     pub count: Option<i64>,
+    /// Number of items to skip before returning results.
     pub offset: Option<i64>,
-    //sorting
+
+    /// Field to sort by.
+    /// 
+    /// See [`SortBy`] for available options.
     pub sort_by: Option<SortBy>,
+    /// Sort order: ascending or descending.
+    /// 
+    /// See [`Order`] for possible values.
     pub order: Option<Order>,
 
-    //filter
+    /// Filter todos by completion status.
     pub done: Option<bool>,
 
-    //searchstring
+    /// Search string to filter todos by title or content.
     pub search: Option<String>,
 }
 

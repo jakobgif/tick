@@ -18,6 +18,8 @@ async fn main() {
         .init()
         .unwrap();
 
+    info!("Application version: {}", env!("CARGO_PKG_VERSION"));
+
     // connect to database
     // create new file if it does not exist
     // https://medium.com/@mikecode/rust-sqlx-sqlite-8d66dbe5e497
@@ -39,23 +41,6 @@ async fn main() {
             );
         ").await.unwrap();
 
-    // add dummy item to db
-    /* 
-    sqlx::query("
-            INSERT INTO todos (
-                title, content, creation_date
-            )
-            VALUES (?, ?, ?)
-        ")
-        .bind("Example Todo")
-        .bind("Some content")
-        .bind(Utc::now().timestamp())
-        .execute(&connection)
-        .await
-        .unwrap();
-    */
-
-    // build our application with a single route
     let app = Router::new()
         .route("/todos", get(list_todos).post(add_todo))
         .route("/todos/{id}", get(get_todo).delete(delete_todo).put(update_todo))
