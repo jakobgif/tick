@@ -8,3 +8,6 @@ This template should help get you started developing with Tauri, React and Types
 
 ## Run Tauri
 `npm run tauri dev`
+
+## Create Icons
+`npm run tauri icon "./src-tauri/icons/circle-check-big.svg"`
