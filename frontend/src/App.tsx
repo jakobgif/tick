@@ -54,6 +54,7 @@ function App() {
 
       setTodos(result)
     } catch (err: any) {
+      setTodos([])
       toast.error(err.toString())
     }
   };
