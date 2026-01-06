@@ -14,9 +14,9 @@ struct ApiResponse<T> {
 }
 
 #[tauri::command]
-pub async fn fetch_todos(params: QueryParams) -> Result<Vec<TodoItem>, String> {
+pub async fn fetch_todos(params: QueryParams, api_url: String) -> Result<Vec<TodoItem>, String> {
     let client = reqwest::Client::new();
-    let url = "http://localhost:3000/todos";
+    let url = format!("{}/todos", api_url);
 
     let response = client
         .get(url)
@@ -47,11 +47,11 @@ pub async fn fetch_todos(params: QueryParams) -> Result<Vec<TodoItem>, String> {
 }
 
 #[tauri::command]
-pub async fn toggle_todo_status(id: i64) -> Result<String, String> {
+pub async fn toggle_todo_status(id: i64, api_url: String) -> Result<String, String> {
     let client = reqwest::Client::new();
 
     //get the todo based on id
-    let url = format!("http://localhost:3000/todos/{}", id);
+    let url = format!("{}/todos/{}", api_url, id);
 
     let response = client
         .get(&url)
@@ -112,11 +112,11 @@ pub async fn toggle_todo_status(id: i64) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn create_todo(mut todo: TodoItem) -> Result<String, String> {
+pub async fn create_todo(mut todo: TodoItem, api_url: String) -> Result<String, String> {
     let client = reqwest::Client::new();
 
     //url to post a new todo
-    let url = format!("http://localhost:3000/todos");
+    let url = format!("{}/todos", api_url);
 
     //set creation date
     todo.creation_date = Utc::now();
@@ -147,11 +147,11 @@ pub async fn create_todo(mut todo: TodoItem) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn update_todo(mut todo: TodoItem) -> Result<String, String> {
+pub async fn update_todo(mut todo: TodoItem, api_url: String) -> Result<String, String> {
     let client = reqwest::Client::new();
 
     //get old todo based on id to check if done status changed
-    let url = format!("http://localhost:3000/todos/{}", todo.id);
+    let url = format!("{}/todos/{}", api_url, todo.id);
 
     let response = client
         .get(&url)
@@ -183,8 +183,6 @@ pub async fn update_todo(mut todo: TodoItem) -> Result<String, String> {
         todo.finish_date = Utc.timestamp_opt(0, 0).unwrap();
     }
 
-    let url = format!("http://localhost:3000/todos/{}", todo.id);
-
     let response = client
         .put(&url)
         .json(&todo)
@@ -211,11 +209,11 @@ pub async fn update_todo(mut todo: TodoItem) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn delete_todo(todo: TodoItem) -> Result<String, String> {
+pub async fn delete_todo(todo: TodoItem, api_url: String) -> Result<String, String> {
     let client = reqwest::Client::new();
 
     //delete todo item based on ID
-    let url = format!("http://localhost:3000/todos/{}", todo.id);
+    let url = format!("{}/todos/{}", api_url, todo.id);
 
     let response = client
         .delete(&url)
