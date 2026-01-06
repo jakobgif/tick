@@ -3,6 +3,7 @@ import { ArrowDown, ArrowRight, ArrowUp, CheckCircle, Circle } from "lucide-reac
 import { DataTableColumnHeader } from "./data-table-column-header"
 import { invoke } from "@tauri-apps/api/core"
 import { toast } from "sonner"
+import { AppConfig } from "@/lib/app-config"
 
 //this type is based on the backend data structure
 export type TodoItem = {
@@ -34,7 +35,10 @@ export const priorities = [
   },
 ]
 
-export const columns = (fetchTodos: () => Promise<void>): ColumnDef<TodoItem>[] => [
+export const columns = (
+  fetchTodos: () => Promise<void>,
+  appConfig: AppConfig
+): ColumnDef<TodoItem>[] => [
   {
     accessorKey: "title",
     header: ({ column }) => (
@@ -79,7 +83,7 @@ export const columns = (fetchTodos: () => Promise<void>): ColumnDef<TodoItem>[] 
         const id = row.original.id
 
         try {
-          await invoke<string>("toggle_todo_status", { id })
+          await invoke<string>("toggle_todo_status", { id: id, apiUrl: appConfig.backendUrl })
           await fetchTodos()
         } catch (err: any) {
           toast.error(err.toString())

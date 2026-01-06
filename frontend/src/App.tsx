@@ -4,13 +4,16 @@ import "./App.css";
 import { useTheme } from "./components/theme-provider";
 import { H2, P } from "./components/ui/typography";
 import { Button } from "./components/ui/button";
-import { Menu, Moon, Sun } from "lucide-react";
+import { Menu, Moon, Save, Sun } from "lucide-react";
 import { columns, TodoItem } from "./components/columns";
 import { DataTable, QueryParams } from "./components/data-table";
 import { toast } from "sonner";
 import { SortingState } from "@tanstack/react-table";
 import { Sheet, SheetContent } from "./components/ui/sheet";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "./components/ui/pagination";
+import { Field, FieldContent, FieldLabel } from "./components/ui/field";
+import { Input } from "./components/ui/input"
+import { AppConfig, loadAppConfig, saveAppConfig } from "./lib/app-config";
 
 function App() {
   const { theme, setTheme } = useTheme()
@@ -23,6 +26,9 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(undefined);
   const [searchString, setSearchString] = useState<string | undefined>(undefined);
+
+  const [appConfig, setAppConfig] = useState<AppConfig>(() => loadAppConfig());
+  const [tempUrl, setTempUrl] = useState<string>(appConfig.backendUrl);
 
   const PAGE_SIZE = 25;
   const [page, setPage] = useState(0);
@@ -50,6 +56,7 @@ function App() {
           done: statusFilter,
           search: searchString,
         },
+        apiUrl: appConfig.backendUrl,
       })
 
       setTodos(result)
@@ -60,12 +67,17 @@ function App() {
 
   useEffect(() => {
     fetchTodos()
-  }, [sorting, page, statusFilter, searchString])
+  }, [sorting, page, statusFilter, searchString, appConfig])
 
   //reset pagination on sorting
   useEffect(() => {
     setPage(0);
-  }, [sorting, statusFilter, searchString]);
+  }, [sorting, statusFilter, searchString, appConfig]);
+
+  //save config on every change
+  useEffect(() => {
+    saveAppConfig(appConfig);
+  }, [appConfig]);
 
   return (
     <main className="m-5 h-[calc(100vh-2.5rem)] flex flex-col">
@@ -89,7 +101,7 @@ function App() {
 
       <div className="flex-1 min-h-0">
         <DataTable
-          columns={columns(fetchTodos)}
+          columns={columns(fetchTodos, appConfig)}
           data={todos}
           sorting={sorting}
           setSorting={setSorting}
@@ -98,6 +110,7 @@ function App() {
           setStatusFilter={setStatusFilter}
           searchString={searchString}
           setSearchString={setSearchString}
+          appConfig={appConfig}
         />
       </div>
 
@@ -194,8 +207,26 @@ function App() {
       </Pagination>
       
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent>
-        </SheetContent>   
+        <SheetContent className="h-full items-center justify-center">
+          <Field className="px-5">
+            <FieldLabel>
+              Backend URL
+            </FieldLabel>
+
+            <FieldContent className="flex flex-row items-center gap-2">
+              <Input type="text" value={tempUrl} placeholder="tick.example.local" className="h-8" onChange={(e) => setTempUrl(e.target.value)} />
+              <Button 
+                onClick={() => setAppConfig((prev) => ({
+                  ...prev,
+                  backendUrl: tempUrl,
+                }))} 
+                size={"icon-sm"} variant={"outline"} disabled={tempUrl == appConfig.backendUrl}
+              >
+                <Save />
+              </Button>
+            </FieldContent>
+          </Field>
+        </SheetContent>
       </Sheet>
     </main>
   );
