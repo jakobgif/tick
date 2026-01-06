@@ -12,6 +12,6 @@ export function loadAppConfig(): AppConfig {
   }
 }
 
-export function saveAppConfig(config: AppConfig): void {
+export function saveAppConfig(_config: AppConfig): void {
   
 }
