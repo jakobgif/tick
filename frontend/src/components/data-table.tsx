@@ -18,6 +18,7 @@ import { DataTableToolbar } from "./data-table-toolbar"
 import { useState } from "react";
 import { TodoItem } from "./columns";
 import { TodoItemDialog } from "./todo-item-dialog";
+import { AppConfig } from "@/lib/app-config";
 
 interface DataTableProps {
   columns: ColumnDef<TodoItem, any>[]
@@ -29,6 +30,7 @@ interface DataTableProps {
   setStatusFilter: React.Dispatch<React.SetStateAction<boolean | undefined>>
   searchString: string | undefined
   setSearchString: React.Dispatch<React.SetStateAction<string | undefined>>
+  appConfig: AppConfig
 }
 
 export type SortBy = "creation_date" | "due_date" | "priority" | "done"
@@ -53,6 +55,7 @@ export function DataTable({
   setStatusFilter,
   searchString,
   setSearchString,
+  appConfig,
 }: DataTableProps) {
   const [selectedRow, setSelectedRow] = useState<TodoItem | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -137,6 +140,7 @@ export function DataTable({
         onOpenChange={setDialogOpen}
         todo={selectedRow}
         fetchTodos={fetchTodos}
+        appConfig={appConfig}
       />
     </div>
   )

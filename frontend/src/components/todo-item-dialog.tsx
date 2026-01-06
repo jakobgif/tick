@@ -20,19 +20,22 @@ import { priorities, TodoItem } from "./columns"
 import { ChevronDownIcon, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { invoke } from "@tauri-apps/api/core"
+import { AppConfig } from "@/lib/app-config"
 
 interface TodoDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   todo: TodoItem | null
   fetchTodos: () => Promise<void>
+  appConfig: AppConfig
 }
 
 export function TodoItemDialog({ 
   open,
   onOpenChange,
   todo,
-  fetchTodos
+  fetchTodos,
+  appConfig,
 }: TodoDialogProps) {
   const [title, setTitle] = useState(todo?.title || "");
   const [content, setContent] = useState(todo?.content || "");
@@ -103,10 +106,10 @@ export function TodoItemDialog({
       onOpenChange(false);
       if (todo) {
         // Update existing todo
-        await invoke<string>("update_todo", { todo: newTodo })
+        await invoke<string>("update_todo", { todo: newTodo, apiUrl: appConfig.backendUrl })
       } else {
         // Create new todo
-        await invoke<string>("create_todo", { todo: newTodo })
+        await invoke<any>("create_todo", { todo: newTodo, apiUrl: appConfig.backendUrl })
       }
       fetchTodos();
     } catch (err) {
@@ -117,7 +120,7 @@ export function TodoItemDialog({
   const handleDelete = async () => {
     try {
       onOpenChange(false);
-      await invoke<string>("delete_todo", { todo })
+      await invoke<string>("delete_todo", { todo: todo, apiUrl: appConfig.backendUrl })
       fetchTodos();
     } catch (err) {
       toast.error("Failed to delete todo: " + err);
