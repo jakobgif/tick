@@ -1,5 +1,6 @@
 [![Rust Backend Unit Tests](https://github.com/jakobgif/tick/actions/workflows/rust.yml/badge.svg?branch=main)](https://github.com/jakobgif/tick/actions/workflows/rust.yml)
 [![Build Backend Docker Image](https://github.com/jakobgif/tick/actions/workflows/docker-build.yml/badge.svg?branch=main)](https://github.com/jakobgif/tick/actions/workflows/docker-build.yml)
+[![Build Tauri App](https://github.com/jakobgif/tick/actions/workflows/tauri-build.yml/badge.svg)](https://github.com/jakobgif/tick/actions/workflows/tauri-build.yml)
 
 # Tick
 
