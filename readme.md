@@ -1,6 +1,14 @@
-[![Rust Backend Unit Tests](https://github.com/jakobgif/tick/actions/workflows/rust.yml/badge.svg?branch=main)](https://github.com/jakobgif/tick/actions/workflows/rust.yml)
-[![Build Backend Docker Image](https://github.com/jakobgif/tick/actions/workflows/docker-build.yml/badge.svg?branch=main)](https://github.com/jakobgif/tick/actions/workflows/docker-build.yml)
-[![Build Tauri App](https://github.com/jakobgif/tick/actions/workflows/tauri-build.yml/badge.svg)](https://github.com/jakobgif/tick/actions/workflows/tauri-build.yml)
+<div align="center">
+  <img src="frontend/src-tauri/icons/Square310x310Logo.png" alt="Logo" width="80" height="80">
+  <h3 align="center">tick</h3>
+  <p align="center">
+    A Todo app build in Rust.
+    <br /><br />
+    <img alt="" src="https://github.com/jakobgif/tick/actions/workflows/rust.yml/badge.svg" />
+    <img alt="" src="https://github.com/jakobgif/tick/actions/workflows/docker-build.yml/badge.svg" />
+    <img alt="" src="https://github.com/jakobgif/tick/actions/workflows/tauri-build.yml/badge.svg" />
+  </p>
+</div>
 
 # Tick
 
@@ -12,4 +20,5 @@ The application uses the following techstack:
 - [SQLx](https://docs.rs/sqlx_wasi/latest/sqlx/) for database access
 
 - SQLite database
+
 
