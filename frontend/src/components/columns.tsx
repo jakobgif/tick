@@ -55,7 +55,7 @@ export const columns = (
     cell: ({ row }) => {
       return (
         <div className="flex">
-          <span className="max-w-[300px] truncate font-medium">
+          <span className="max-w-[300px] truncate">
             {row.getValue("content")}
           </span>
         </div>
