@@ -80,6 +80,13 @@ function App() {
     saveAppConfig(appConfig);
   }, [appConfig]);
 
+  //set the temp url to whatever backend url is set to when the menu sheet opens
+  useEffect(() => {
+    if (menuOpen) {
+      setTempUrl(appConfig.backendUrl);
+    }
+  }, [menuOpen]);
+
   return (
     <main className="m-5 h-[calc(100vh-2.5rem)] flex flex-col">
       <div className="flex flex-col mb-2">
@@ -208,14 +215,14 @@ function App() {
       </Pagination>
       
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent className="h-full items-center justify-center">
+        <SheetContent className="h-full items-center justify-center" onOpenAutoFocus={(e) => e.preventDefault()}>
           <Field className="px-5">
             <FieldLabel>
               Backend URL
             </FieldLabel>
 
             <FieldContent className="flex flex-row items-center gap-2">
-              <Input type="text" value={tempUrl} placeholder="tick.example.local" className="h-8" onChange={(e) => setTempUrl(e.target.value)} />
+              <Input type="text" value={tempUrl} placeholder="https://tick.example.local" className="h-8" onChange={(e) => setTempUrl(e.target.value)} />
               <Button 
                 onClick={() => setAppConfig((prev) => ({
                   ...prev,
