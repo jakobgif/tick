@@ -27,3 +27,9 @@ The frontend uses the following techstack:
 - [Vite](https://vite.dev/) for development
 - [tailwindcss](https://tailwindcss.com/) for styling
 - [reqwest](https://docs.rs/reqwest/latest/reqwest/) for HTTP requests
+
+## Screenshots
+![dark mode](/docs/images/dark.png?raw=true)
+![light mode](/docs/images/light.png?raw=true)
+![edit todo](/docs/images/edit.png?raw=true)
+![create todo](/docs/images/create.png?raw=true)
