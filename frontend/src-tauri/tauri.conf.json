@@ -1,7 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "tick",
-  "version": "1.0.0",
   "identifier": "com.jakobfrenzel.tick",
   "build": {
     "beforeDevCommand": "npm run dev",
