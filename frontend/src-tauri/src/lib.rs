@@ -1,6 +1,9 @@
 pub mod api_requests;
 pub use crate::api_requests::*;
 
+/// Entry point of the Tauri application. 
+/// 
+/// Generates handlers for the tauri "commands"
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()

@@ -5,14 +5,26 @@ use tick_backend::data_structs::{ TodoItem, QueryParams };
 use serde::Deserialize;
 use chrono::{ Utc, TimeZone };
 
+/// Struct that contains a response the API can send
 #[derive(Deserialize)]
 struct ApiResponse<T> {
+    /// Status of the API response, eg "OK"
     status: String,
+
+    /// response can contain a list of items
     items: Option<T>,
+
+    /// response can contain a single item
     item: Option<T>,
+
+    /// repsonse can contain a message, eg error message
     message: Option<String>,
 }
 
+/// Fetch todos from the backend.
+/// 
+/// * `params` - Query that is applied at the backend
+/// * `api_url` - URL to the backend server
 #[tauri::command]
 pub async fn fetch_todos(params: QueryParams, api_url: String) -> Result<Vec<TodoItem>, String> {
     let client = reqwest::Client::new();
@@ -46,6 +58,12 @@ pub async fn fetch_todos(params: QueryParams, api_url: String) -> Result<Vec<Tod
     }
 }
 
+/// Toggle the status of a specific todo item.
+/// 
+/// Fetches todo item from backend. Toggles the done value. Updates the todo to the backend. If the status is toggled to false the done date is set to `0`. If the status is toggled to true the done date is set to `Utc::now()`.
+/// 
+/// * `id` - ID of the todo item to toggle
+/// * `api_url` - URL to the backend server
 #[tauri::command]
 pub async fn toggle_todo_status(id: i64, api_url: String) -> Result<String, String> {
     let client = reqwest::Client::new();
@@ -111,6 +129,12 @@ pub async fn toggle_todo_status(id: i64, api_url: String) -> Result<String, Stri
     }
 }
 
+/// Create a new todo item
+/// 
+/// Function sets the creation date to `Utc::now()`.
+/// 
+/// * `todo` - The todo item to add to the database
+/// * `api_url` - URL to the backend server
 #[tauri::command]
 pub async fn create_todo(mut todo: TodoItem, api_url: String) -> Result<String, String> {
     let client = reqwest::Client::new();
@@ -146,6 +170,12 @@ pub async fn create_todo(mut todo: TodoItem, api_url: String) -> Result<String, 
     }
 }
 
+/// Update a new todo item
+/// 
+/// Get the original todo from the backend. The done date is set to `Utc::now()` if the done status changed to true. The done date is set to `0` if the done status changed to false. 
+/// 
+/// * `todo` - The todo item to add to the database
+/// * `api_url` - URL to the backend server
 #[tauri::command]
 pub async fn update_todo(mut todo: TodoItem, api_url: String) -> Result<String, String> {
     let client = reqwest::Client::new();
@@ -208,6 +238,10 @@ pub async fn update_todo(mut todo: TodoItem, api_url: String) -> Result<String, 
     }
 }
 
+/// Delete a specific todo item from database
+/// 
+/// * `id` - ID of the todo item to delete
+/// * `api_url` - URL to the backend server
 #[tauri::command]
 pub async fn delete_todo(id: i64, api_url: String) -> Result<String, String> {
     let client = reqwest::Client::new();
