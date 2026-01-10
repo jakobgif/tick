@@ -209,11 +209,11 @@ pub async fn update_todo(mut todo: TodoItem, api_url: String) -> Result<String, 
 }
 
 #[tauri::command]
-pub async fn delete_todo(todo: TodoItem, api_url: String) -> Result<String, String> {
+pub async fn delete_todo(id: i64, api_url: String) -> Result<String, String> {
     let client = reqwest::Client::new();
 
     //delete todo item based on ID
-    let url = format!("{}/todos/{}", api_url, todo.id);
+    let url = format!("{}/todos/{}", api_url, id);
 
     let response = client
         .delete(&url)

@@ -120,7 +120,7 @@ export function TodoItemDialog({
   const handleDelete = async () => {
     try {
       onOpenChange(false);
-      await invoke<string>("delete_todo", { todo: todo, apiUrl: appConfig.backendUrl })
+      await invoke<string>("delete_todo", { id: todo?.id, apiUrl: appConfig.backendUrl })
       fetchTodos();
     } catch (err) {
       toast.error("Failed to delete todo: " + err);
