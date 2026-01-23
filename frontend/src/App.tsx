@@ -9,7 +9,7 @@ import { columns, TodoItem } from "./components/columns";
 import { DataTable, QueryParams } from "./components/data-table";
 import { toast } from "sonner";
 import { SortingState } from "@tanstack/react-table";
-import { Sheet, SheetContent } from "./components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "./components/ui/sheet";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "./components/ui/pagination";
 import { Field, FieldContent, FieldLabel } from "./components/ui/field";
 import { Input } from "./components/ui/input"
@@ -246,19 +246,32 @@ function App() {
       </Pagination>
       
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent className="h-full items-center justify-center" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <SheetContent className="h-full items-center justify-center" onOpenAutoFocus={(e) => e.preventDefault()} aria-describedby={undefined}>
+          <SheetTitle className="sr-only">Settings</SheetTitle>
           <Field className="px-5">
             <FieldLabel>
               Backend URL
             </FieldLabel>
 
             <FieldContent className="flex flex-row items-center gap-2">
-              <Input type="text" value={tempUrl} placeholder="https://tick.example.local" className="h-8" onChange={(e) => setTempUrl(e.target.value)} />
-              <Button 
-                onClick={() => setAppConfig((prev) => ({
-                  ...prev,
-                  backendUrl: tempUrl,
-                }))} 
+              <Input
+                type="text"
+                value={tempUrl}
+                placeholder="https://tick.example.local"
+                className="h-8"
+                onChange={(e) => setTempUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && tempUrl !== appConfig.backendUrl) {
+                    setAppConfig((prev) => ({ ...prev, backendUrl: tempUrl }));
+                    setMenuOpen(false);
+                  }
+                }}
+              />
+              <Button
+                onClick={() => {
+                  setAppConfig((prev) => ({ ...prev, backendUrl: tempUrl }));
+                  setMenuOpen(false);
+                }}
                 size={"icon-sm"} variant={"outline"} disabled={tempUrl == appConfig.backendUrl}
               >
                 <Save />
