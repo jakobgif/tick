@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { useTheme } from "./components/theme-provider";
@@ -28,8 +28,21 @@ function App() {
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(undefined);
   const [searchString, setSearchString] = useState<string | undefined>(undefined);
 
-  const [appConfig, setAppConfig] = useState<AppConfig>(() => loadAppConfig());
-  const [tempUrl, setTempUrl] = useState<string>(appConfig.backendUrl);
+  const [appConfig, setAppConfig] = useState<AppConfig>({ backendUrl: "" });
+  const [tempUrl, setTempUrl] = useState<string>("");
+  const [configLoaded, setConfigLoaded] = useState(false);
+  const configLoadedRef = useRef(false);
+  const skipInitialSaveRef = useRef(true);
+
+  useEffect(() => {
+    if (configLoadedRef.current) return;
+    configLoadedRef.current = true;
+    loadAppConfig().then((config) => {
+      setAppConfig(config);
+      setTempUrl(config.backendUrl);
+      setConfigLoaded(true);
+    });
+  }, []);
 
   const PAGE_SIZE = 25;
   const [page, setPage] = useState(0);
@@ -68,16 +81,21 @@ function App() {
   };
 
   useEffect(() => {
-    fetchTodos()
+    if (configLoaded) fetchTodos()
   }, [sorting, page, statusFilter, searchString, appConfig])
 
   //reset pagination on sorting
   useEffect(() => {
-    setPage(0);
+    if (configLoaded) setPage(0);
   }, [sorting, statusFilter, searchString, appConfig]);
 
-  //save config on every change
+  //save config on every change (skip initial save after loading)
   useEffect(() => {
+    if (!configLoaded) return;
+    if (skipInitialSaveRef.current) {
+      skipInitialSaveRef.current = false;
+      return;
+    }
     saveAppConfig(appConfig);
   }, [appConfig]);
 
