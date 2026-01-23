@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { useTheme } from "./components/theme-provider";
@@ -9,7 +9,7 @@ import { columns, TodoItem } from "./components/columns";
 import { DataTable, QueryParams } from "./components/data-table";
 import { toast } from "sonner";
 import { SortingState } from "@tanstack/react-table";
-import { Sheet, SheetContent } from "./components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "./components/ui/sheet";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "./components/ui/pagination";
 import { Field, FieldContent, FieldLabel } from "./components/ui/field";
 import { Input } from "./components/ui/input"
@@ -28,8 +28,21 @@ function App() {
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(undefined);
   const [searchString, setSearchString] = useState<string | undefined>(undefined);
 
-  const [appConfig, setAppConfig] = useState<AppConfig>(() => loadAppConfig());
-  const [tempUrl, setTempUrl] = useState<string>(appConfig.backendUrl);
+  const [appConfig, setAppConfig] = useState<AppConfig>({ backendUrl: "" });
+  const [tempUrl, setTempUrl] = useState<string>("");
+  const [configLoaded, setConfigLoaded] = useState(false);
+  const configLoadedRef = useRef(false);
+  const skipInitialSaveRef = useRef(true);
+
+  useEffect(() => {
+    if (configLoadedRef.current) return;
+    configLoadedRef.current = true;
+    loadAppConfig().then((config) => {
+      setAppConfig(config);
+      setTempUrl(config.backendUrl);
+      setConfigLoaded(true);
+    });
+  }, []);
 
   const PAGE_SIZE = 25;
   const [page, setPage] = useState(0);
@@ -68,16 +81,21 @@ function App() {
   };
 
   useEffect(() => {
-    fetchTodos()
+    if (configLoaded) fetchTodos()
   }, [sorting, page, statusFilter, searchString, appConfig])
 
   //reset pagination on sorting
   useEffect(() => {
-    setPage(0);
+    if (configLoaded) setPage(0);
   }, [sorting, statusFilter, searchString, appConfig]);
 
-  //save config on every change
+  //save config on every change (skip initial save after loading)
   useEffect(() => {
+    if (!configLoaded) return;
+    if (skipInitialSaveRef.current) {
+      skipInitialSaveRef.current = false;
+      return;
+    }
     saveAppConfig(appConfig);
   }, [appConfig]);
 
@@ -228,19 +246,32 @@ function App() {
       </Pagination>
       
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent className="h-full items-center justify-center" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <SheetContent className="h-full items-center justify-center" onOpenAutoFocus={(e) => e.preventDefault()} aria-describedby={undefined}>
+          <SheetTitle className="sr-only">Settings</SheetTitle>
           <Field className="px-5">
             <FieldLabel>
               Backend URL
             </FieldLabel>
 
             <FieldContent className="flex flex-row items-center gap-2">
-              <Input type="text" value={tempUrl} placeholder="https://tick.example.local" className="h-8" onChange={(e) => setTempUrl(e.target.value)} />
-              <Button 
-                onClick={() => setAppConfig((prev) => ({
-                  ...prev,
-                  backendUrl: tempUrl,
-                }))} 
+              <Input
+                type="text"
+                value={tempUrl}
+                placeholder="https://tick.example.local"
+                className="h-8"
+                onChange={(e) => setTempUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && tempUrl !== appConfig.backendUrl) {
+                    setAppConfig((prev) => ({ ...prev, backendUrl: tempUrl }));
+                    setMenuOpen(false);
+                  }
+                }}
+              />
+              <Button
+                onClick={() => {
+                  setAppConfig((prev) => ({ ...prev, backendUrl: tempUrl }));
+                  setMenuOpen(false);
+                }}
                 size={"icon-sm"} variant={"outline"} disabled={tempUrl == appConfig.backendUrl}
               >
                 <Save />
