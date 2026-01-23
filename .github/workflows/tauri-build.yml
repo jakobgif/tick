@@ -1,0 +1,47 @@
+name: Build Tauri App
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "frontend/**"
+  workflow_dispatch:
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: '["self-hosted", "ubuntu-latest"]'
+            args: ''
+          - platform: '"windows-latest"'
+            args: ''
+
+    runs-on: 
+      - ${{ fromJSON(matrix.platform) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - uses: tauri-apps/tauri-action@action-v0.6.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: frontend
+          tagName: tick-v__VERSION__
+          releaseName: 'tick v__VERSION__'
+          releaseBody: 'See the assets to download this version and install.'
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}

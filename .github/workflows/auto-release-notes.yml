@@ -1,0 +1,70 @@
+name: Auto Generate Release Notes
+
+on:
+  release:
+    types: [created, edited, published]
+
+permissions:
+  contents: write
+
+jobs:
+  generate-release-notes:
+    runs-on: [self-hosted, ubuntu-latest]
+
+    steps:
+      - name: Generate release notes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const release = context.payload.release;
+
+            // Get all releases
+            const releases = await github.rest.repos.listReleases({
+              owner,
+              repo,
+              per_page: 100
+            });
+
+            // Find the last release excluding current
+            const lastRelease = releases.data.find(
+              r => !r.prerelease && r.tag_name !== release.tag_name
+            );
+
+            let base = lastRelease ? lastRelease.tag_name : null;
+            const head = release.tag_name;
+
+            let commits = [];
+
+            if (base) {
+              const comparison = await github.rest.repos.compareCommits({
+                owner,
+                repo,
+                base,
+                head
+              });
+              commits = comparison.data.commits;
+            } else {
+              // No previous release: get all commits in target branch
+              const list = await github.rest.repos.listCommits({
+                owner,
+                repo,
+                sha: release.target_commitish,
+                per_page: 100
+              });
+              commits = list.data;
+            }
+
+            const commitMessages = commits.map(c => `- ${c.commit.message.split("\n")[0]}`).join("\n");
+
+            const compareLink = base ? `\n\n[Compare changes](https://github.com/${owner}/${repo}/compare/${base}...${head})` : "";
+
+            const releaseNotes = commitMessages || "No commits found since last release.";
+            const finalNotes = releaseNotes + compareLink;
+
+            await github.rest.repos.updateRelease({
+              owner,
+              repo,
+              release_id: release.id,
+              body: finalNotes
+            });

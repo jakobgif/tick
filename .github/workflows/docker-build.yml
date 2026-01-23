@@ -8,7 +8,18 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    runs-on: [ ubuntu-latest, self-hosted ]
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+    - uses: actions/checkout@v4
+    - name: Run tests
+      run: cargo test
+
   build:
+    needs: test
     runs-on: [ ubuntu-latest, self-hosted ]
 
     steps:

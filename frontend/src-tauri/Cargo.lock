@@ -4709,7 +4709,7 @@ dependencies = [
 
 [[package]]
 name = "tick"
-version = "0.0.1"
+version = "1.0.1"
 dependencies = [
  "chrono",
  "reqwest",
@@ -4723,7 +4723,7 @@ dependencies = [
 
 [[package]]
 name = "tick_backend"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "axum",
  "chrono",

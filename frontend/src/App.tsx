@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { useTheme } from "./components/theme-provider";
-import { H2, P } from "./components/ui/typography";
+import { H2, Muted, P } from "./components/ui/typography";
 import { Button } from "./components/ui/button";
 import { Menu, Moon, Save, Sun } from "lucide-react";
 import { columns, TodoItem } from "./components/columns";
@@ -14,6 +14,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { Field, FieldContent, FieldLabel } from "./components/ui/field";
 import { Input } from "./components/ui/input"
 import { AppConfig, loadAppConfig, saveAppConfig } from "./lib/app-config";
+import { getVersion } from '@tauri-apps/api/app';
 
 function App() {
   const { theme, setTheme } = useTheme()
@@ -61,6 +62,7 @@ function App() {
 
       setTodos(result)
     } catch (err: any) {
+      setTodos([])
       toast.error(err.toString())
     }
   };
@@ -78,6 +80,25 @@ function App() {
   useEffect(() => {
     saveAppConfig(appConfig);
   }, [appConfig]);
+
+  //set the temp url to whatever backend url is set to when the menu sheet opens
+  useEffect(() => {
+    if (menuOpen) {
+      setTempUrl(appConfig.backendUrl);
+    }
+  }, [menuOpen]);
+
+  const [appVersion, setAppVersion] = useState<string>("");
+  useEffect(() => {
+    (async () => {
+      try {
+        const version = await getVersion();
+        setAppVersion(version);
+      } catch {
+        setAppVersion("unknown");
+      }
+    })();
+  }, []);
 
   return (
     <main className="m-5 h-[calc(100vh-2.5rem)] flex flex-col">
@@ -207,14 +228,14 @@ function App() {
       </Pagination>
       
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent className="h-full items-center justify-center">
+        <SheetContent className="h-full items-center justify-center" onOpenAutoFocus={(e) => e.preventDefault()}>
           <Field className="px-5">
             <FieldLabel>
               Backend URL
             </FieldLabel>
 
             <FieldContent className="flex flex-row items-center gap-2">
-              <Input type="text" value={tempUrl} placeholder="tick.example.local" className="h-8" onChange={(e) => setTempUrl(e.target.value)} />
+              <Input type="text" value={tempUrl} placeholder="https://tick.example.local" className="h-8" onChange={(e) => setTempUrl(e.target.value)} />
               <Button 
                 onClick={() => setAppConfig((prev) => ({
                   ...prev,
@@ -226,6 +247,10 @@ function App() {
               </Button>
             </FieldContent>
           </Field>
+
+          <Muted className="absolute bottom-0 pb-2">
+            {`Version: ${appVersion}`}
+          </Muted>
         </SheetContent>
       </Sheet>
     </main>
