@@ -28,6 +28,7 @@ export async function loadAppConfig(): Promise<AppConfig> {
     if (fileExists) {
       const data = await readTextFile(path)
       const loaded = JSON.parse(data) as Partial<AppConfig>
+      console.debug("[config] loaded app config")
       const merged = { ...DEFAULT_CONFIG, ...loaded }
       return merged
     }
@@ -43,6 +44,7 @@ export async function saveAppConfig(config: AppConfig): Promise<void> {
     const path = await getConfigPath()
     const data = JSON.stringify(config, null, 2)
     await writeTextFile(path, data)
+    console.debug("[config] saved app config")
   } catch (err) {
     console.error("[config] Error saving config:", err)
   }
